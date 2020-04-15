@@ -1,5 +1,5 @@
 #
-# node-httpp building Dockerfile
+# node-httpp packaging Dockerfile
 #
 # https://github.com/InstantWebP2P/node-httpp
 # Copyright (c) 2020 Tom Zhou<appnet.link@gmail.com>
@@ -8,11 +8,9 @@
 FROM ubuntu:18.04
 
 # Install.
-RUN \
- apt-get -y update && \
- apt-get install -y python make g++ gcc
 
 # Add files.
+COPY * /appins/
 
 # Set environment variables.
 ENV HOME /root
@@ -21,4 +19,4 @@ ENV HOME /root
 WORKDIR /appins
 
 # Define default command.
-CMD ["bash"]
+CMD ["./bin/node"]
