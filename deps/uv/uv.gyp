@@ -10,7 +10,7 @@
         ],
       }],
       ['OS in "mac ios"', {
-        'shared_mac_defines': [ '_DARWIN_USE_64_BIT_INODE=1' ],
+        'shared_mac_defines': [ '_DARWIN_USE_64_BIT_INODE=1', 'DARWIN=1' ],
       }, {
         'shared_mac_defines': [ ],
       }],
@@ -43,6 +43,8 @@
       'include_dirs': [
         'include',
         'src/',
+        'uvudt/',
+        'uvudt/UDT4/src/'
       ],
       'defines': [
         '<@(shared_mac_defines)',
@@ -58,7 +60,7 @@
         'include_dirs': [ 'include' ],
         'conditions': [
           ['OS == "linux"', {
-            'defines': [ '_POSIX_C_SOURCE=200112' ],
+            'defines': [ '_POSIX_C_SOURCE=200112', 'LINUX=1' ],
           }],
         ],
       },
@@ -83,7 +85,23 @@
         'src/uv-data-getter-setters.c',
         'src/uv-common.c',
         'src/uv-common.h',
-        'src/version.c'
+        'src/version.c',
+        'uvudt/UDT4/src/api.cpp',
+        'uvudt/UDT4/src/buffer.cpp',
+        'uvudt/UDT4/src/cache.cpp',
+        'uvudt/UDT4/src/ccc.cpp',
+        'uvudt/UDT4/src/channel.cpp',
+        'uvudt/UDT4/src/common.cpp',
+        'uvudt/UDT4/src/udt_core.cpp',
+        'uvudt/UDT4/src/epoll.cpp',
+        'uvudt/UDT4/src/list.cpp',
+        'uvudt/UDT4/src/md5.cpp',
+        'uvudt/UDT4/src/packet.cpp',
+        'uvudt/UDT4/src/queue.cpp',
+        'uvudt/UDT4/src/udtc.cpp',
+        'uvudt/UDT4/src/window.cpp',
+        'uvudt/uvudt.c',
+        'uvudt/udtstream.c'
       ],
       'xcode_settings': {
         'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',  # -fvisibility=hidden
@@ -93,7 +111,7 @@
           '-Wno-unused-parameter',
           '-Wstrict-prototypes',
         ],
-        'OTHER_CFLAGS': [ '-g', '--std=gnu89' ],
+        'OTHER_CFLAGS': [ '-g' ],
       },
       'conditions': [
         [ 'OS=="win"', {
@@ -216,7 +234,6 @@
           'cflags': [
             '-fvisibility=hidden',
             '-g',
-            '--std=gnu89',
             '-Wall',
             '-Wextra',
             '-Wno-unused-parameter',
