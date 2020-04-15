@@ -1,6 +1,10 @@
 name: misc
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ v12.x-httpp ]
+  pull_request:
+    branches: [ v12.x-httpp ]
 
 env:
   NODE_VERSION: 12.x
