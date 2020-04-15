@@ -8,6 +8,17 @@
 FROM ubuntu:18.04
 
 # Install.
+RUN \
+ apt-get -y update && \
+ apt-get install -y python g++ gcc make
+
+# Add files.
+COPY . /appins/
+
+# Set environment variables.
+ENV HOME /root
+ENV PATH /appins/bin:$PATH
+ENV LD_LIBRARY_PATH /appins/lib:$LD_LIBRARY_PATH
 
 # Add files.
 COPY * /appins/
@@ -19,4 +30,4 @@ ENV HOME /root
 WORKDIR /appins
 
 # Define default command.
-CMD ["./bin/node"]
+CMD ["node"]
