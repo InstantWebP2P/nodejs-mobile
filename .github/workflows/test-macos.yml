@@ -1,6 +1,10 @@
 name: test-macOS
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ v12.x-httpp ]
+  pull_request:
+    branches: [ v12.x-httpp ]
 
 env:
   PYTHON_VERSION: 2.7
