@@ -19,5 +19,5 @@ else
   echo "Start building ..."
   docker run -v `pwd`:`pwd` -w `pwd` -i -t \
   --rm --network host \
-  httpp-bld:12.x bash -c "./configure --prefix=./appins/ && make && make install"
+  httpp-bld:12.x bash -c "./configure --prefix=./appins/ && make -j 6 && make install"
 fi
