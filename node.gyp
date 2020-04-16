@@ -597,6 +597,7 @@
         'src/tracing/traced_value.cc',
         'src/tty_wrap.cc',
         'src/udp_wrap.cc',
+        'src/udt_wrap.cc',
         'src/util.cc',
         'src/uv.cc',
         # headers to make for a more pleasant IDE experience
@@ -684,6 +685,7 @@
         'src/tracing/traced_value.h',
         'src/tty_wrap.h',
         'src/udp_wrap.h',
+        'src/udt_wrap.h',
         'src/util.h',
         'src/util-inl.h',
         # Dependency headers

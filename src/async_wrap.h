@@ -70,7 +70,7 @@ namespace node {
   V(UDPWRAP)                                                                  \
   V(WORKER)                                                                   \
   V(WRITEWRAP)                                                                \
-  V(ZLIB)
+  V(ZLIB)                                                                     \
 
 #if HAVE_OPENSSL
 #define NODE_ASYNC_CRYPTO_PROVIDER_TYPES(V)                                   \
