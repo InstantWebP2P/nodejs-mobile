@@ -502,6 +502,7 @@
       ],
 
       'include_dirs': [
+        'deps/uv/uvudt',
         'src',
         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
       ],
@@ -1110,6 +1111,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
         'test/cctest',
       ],
@@ -1218,6 +1220,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
       ],
 
@@ -1273,6 +1276,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
       ],
 

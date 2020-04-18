@@ -33,14 +33,14 @@ class ReqWrap : public AsyncWrap, public ReqWrapBase {
   inline ReqWrap(Environment* env,
                  v8::Local<v8::Object> object,
                  AsyncWrap::ProviderType provider);
-  inline ~ReqWrap() override;
+  virtual inline ~ReqWrap() override;
   // Call this after the req has been dispatched, if that did not already
   // happen by using Dispatch().
   inline void Dispatched();
   // Call this after a request has finished, if re-using this object is planned.
   inline void Reset();
   T* req() { return &req_; }
-  inline void Cancel() final;
+  virtual inline void Cancel() override;
   inline AsyncWrap* GetAsyncWrap() override;
 
   static ReqWrap* from_req(T* req);

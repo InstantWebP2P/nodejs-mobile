@@ -1,10 +1,10 @@
 #include "udtconnection_wrap.h"
 
-#include "udtconnect_wrap.h"
 #include "env-inl.h"
 #include "pipe_wrap.h"
 #include "stream_base-inl.h"
-#include "udtstream_wrap.h"
+#include "udtconnect_wrap.h"
+#include "udt_wrap.h"
 #include "util-inl.h"
 
 namespace node {
@@ -31,7 +31,7 @@ UDTConnectionWrap<WrapType, UVType>::UDTConnectionWrap(Environment* env,
 template <typename WrapType, typename UVType>
 void UDTConnectionWrap<WrapType, UVType>::OnConnection(uvudt_t* handle,
                                                        int status) {
-  WrapType* wrap_data = static_cast<WrapType*>(handle->data);
+  WrapType* wrap_data = static_cast<WrapType*>(reinterpret_cast<uv_handle_t*>(handle)->data);
   CHECK_NOT_NULL(wrap_data);
   CHECK_EQ(&wrap_data->handle_, reinterpret_cast<UVType*>(handle));
 
@@ -78,7 +78,7 @@ void UDTConnectionWrap<WrapType, UVType>::AfterConnect(uvudt_connect_t* req,
   std::unique_ptr<UDTConnectWrap> req_wrap
     (static_cast<UDTConnectWrap*>(req->data));
   CHECK_NOT_NULL(req_wrap);
-  WrapType* wrap = static_cast<WrapType*>(req->handle->data);
+  WrapType* wrap = static_cast<WrapType*>(reinterpret_cast<uv_handle_t*>(req->handle)->data);
   CHECK_EQ(req_wrap->env(), wrap->env());
   Environment* env = wrap->env();
 
@@ -109,13 +109,17 @@ void UDTConnectionWrap<WrapType, UVType>::AfterConnect(uvudt_connect_t* req,
   req_wrap->MakeCallback(env->oncomplete_string(), arraysize(argv), argv);
 }
 
-template UDTConnectionWrap<UDTStreamWrap, uvudt_t>::UDTConnectionWrap(
-    Environment* env, Local<Object> object, ProviderType provider);
+template UDTConnectionWrap<UDTWrap, uvudt_t>::UDTConnectionWrap(
+    Environment* env, 
+    Local<Object> object, 
+    ProviderType provider);
 
-template void UDTConnectionWrap<UDTStreamWrap, uvudt_t>::OnConnection(
-    uvudt_t* handle, int status);
+template void UDTConnectionWrap<UDTWrap, uvudt_t>::OnConnection(
+    uvudt_t* handle,
+    int status);
 
-template void UDTConnectionWrap<UDTStreamWrap, uvudt_t>::AfterConnect(
-    uvudt_connect_t* handle, int status);
+template void UDTConnectionWrap<UDTWrap, uvudt_t>::AfterConnect(
+    uvudt_connect_t* handle, 
+    int status);
 
 }  // namespace node

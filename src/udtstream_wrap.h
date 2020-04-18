@@ -24,10 +24,8 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
-#include "stream_base.h"
 #include "handle_wrap.h"
-#include "async_wrap.h"
-#include "connection_wrap.h"
+#include "stream_base.h"
 #include "v8.h"
 
 #include "uvudt.h"
@@ -64,19 +62,6 @@ class UDTStreamWrap : public HandleWrap, public StreamBase {
     return stream_;
   }
 
-  inline bool is_named_pipe() const {
-    return stream()->type == UV_NAMED_PIPE;
-  }
-
-  inline bool is_named_pipe_ipc() const {
-    return is_named_pipe() &&
-           reinterpret_cast<const uv_pipe_t*>(stream())->ipc != 0;
-  }
-
-  inline bool is_tcp() const {
-    return stream()->type == UV_TCP;
-  }
-
   ShutdownWrap* CreateShutdownWrap(v8::Local<v8::Object> object) override;
   WriteWrap* CreateWriteWrap(v8::Local<v8::Object> object) override;
 
@@ -93,7 +78,7 @@ class UDTStreamWrap : public HandleWrap, public StreamBase {
   static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
       Environment* env);
 
-  virtual void OnClose() { uvudt_close(stream_); }
+  virtual void OnClose() override { uvudt_close(stream_, NULL); }
 
  private:
   static void GetWriteQueueSize(
@@ -104,8 +89,8 @@ class UDTStreamWrap : public HandleWrap, public StreamBase {
   void OnUvAlloc(size_t suggested_size, uv_buf_t* buf);
   void OnUvRead(ssize_t nread, const uv_buf_t* buf);
 
-  static void AfterUvWrite(uv_write_t* req, int status);
-  static void AfterUvShutdown(uv_shutdown_t* req, int status);
+  static void AfterUvWrite(uvudt_write_t* req, int status);
+  static void AfterUvShutdown(uvudt_shutdown_t* req, int status);
 
   uvudt_t* const stream_;
 };

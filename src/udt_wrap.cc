@@ -86,7 +86,7 @@ void UDTWrap::Initialize(Local<Object> target,
   t->InstanceTemplate()->Set(env->owner_symbol(), Null(env->isolate()));
   t->InstanceTemplate()->Set(env->onconnection_string(), Null(env->isolate()));
 
-  t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
+  t->Inherit(UDTStreamWrap::GetConstructorTemplate(env));
 
   env->SetProtoMethod(t, "open", Open);
   env->SetProtoMethod(t, "bind", Bind);
@@ -111,7 +111,7 @@ void UDTWrap::Initialize(Local<Object> target,
       BaseObject::MakeLazilyInitializedJSTemplate(env);
   cwt->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> wrapString =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "ConnectWrap");
+      FIXED_ONE_BYTE_STRING(env->isolate(), "UDTConnectWrap");
   cwt->SetClassName(wrapString);
   target->Set(env->context(),
               wrapString,
@@ -121,7 +121,7 @@ void UDTWrap::Initialize(Local<Object> target,
   Local<Object> constants = Object::New(env->isolate());
   NODE_DEFINE_CONSTANT(constants, SOCKET);
   NODE_DEFINE_CONSTANT(constants, SERVER);
-  NODE_DEFINE_CONSTANT(constants, UV_UDT_IPV6ONLY);
+  NODE_DEFINE_CONSTANT(constants, UVUDT_FLAG_IPV6ONLY);
   target->Set(context,
               env->constants_string(),
               constants).Check();
@@ -156,7 +156,7 @@ void UDTWrap::New(const FunctionCallbackInfo<Value>& args) {
 
 
 UDTWrap::UDTWrap(Environment* env, Local<Object> object, ProviderType provider)
-    : ConnectionWrap(env, object, provider) {
+    : UDTConnectionWrap(env, object, provider) {
   int r = uvudt_init(env->event_loop(), &handle_);
   CHECK_EQ(r, 0);  // How do we proxy this error up to javascript?
                    // Suggestion: uvudt_init() returns void.
@@ -199,9 +199,6 @@ void UDTWrap::Open(const FunctionCallbackInfo<Value>& args) {
   int fd = static_cast<int>(val);
   int err = uvudt_open(&wrap->handle_, fd);
 
-  if (err == 0)
-    wrap->set_fd(fd);
-
   args.GetReturnValue().Set(err);
 }
 
@@ -229,8 +226,9 @@ void UDTWrap::Bind(
 
   if (err == 0) {
     err = uvudt_bind(&wrap->handle_,
-                      reinterpret_cast<const sockaddr*>(&addr),
-                      flags);
+                     reinterpret_cast<const sockaddr*>(&addr),
+                     flags & UVUDT_FLAG_REUSEADDR,
+                     flags & UVUDT_FLAG_REUSEABLE);
   }
   args.GetReturnValue().Set(err);
 }
@@ -302,8 +300,8 @@ void UDTWrap::Connect(const FunctionCallbackInfo<Value>& args,
 
   if (err == 0) {
     AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(wrap);
-    ConnectWrap* req_wrap =
-        new ConnectWrap(env, req_wrap_obj, AsyncWrap::PROVIDER_UDTCONNECTWRAP);
+    UDTConnectWrap* req_wrap =
+        new UDTConnectWrap(env, req_wrap_obj, AsyncWrap::PROVIDER_UDTCONNECTWRAP);
     err = req_wrap->Dispatch(uvudt_connect,
                              &wrap->handle_,
                              reinterpret_cast<const sockaddr*>(&addr),

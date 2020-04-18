@@ -126,7 +126,7 @@ UDTStreamWrap::UDTStreamWrap(Environment* env,
 
 Local<FunctionTemplate> UDTStreamWrap::GetConstructorTemplate(
     Environment* env) {
-  Local<FunctionTemplate> tmpl = env->libuv_udt_wrap_ctor_template();
+  Local<FunctionTemplate> tmpl = env->libuv_stream_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
     tmpl = env->NewFunctionTemplate(nullptr);
     tmpl->SetClassName(
@@ -146,28 +146,24 @@ Local<FunctionTemplate> UDTStreamWrap::GetConstructorTemplate(
         static_cast<PropertyAttribute>(ReadOnly | DontDelete));
     env->SetProtoMethod(tmpl, "setBlocking", SetBlocking);
     StreamBase::AddMethods(env, tmpl);
-    env->set_libuv_udt_wrap_ctor_template(tmpl);
+    env->set_libuv_stream_wrap_ctor_template(tmpl);
   }
   return tmpl;
 }
 
 
 UDTStreamWrap* UDTStreamWrap::From(Environment* env, Local<Object> object) {
-  Local<FunctionTemplate> sw = env->libuv_udt_wrap_ctor_template();
+  Local<FunctionTemplate> sw = env->libuv_stream_wrap_ctor_template();
   CHECK(!sw.IsEmpty() && sw->HasInstance(object));
   return Unwrap<UDTStreamWrap>(object);
 }
 
 
 int UDTStreamWrap::GetFD() {
-#ifdef _WIN32
-  return fd_;
-#else
   int fd = -1;
   if (stream() != nullptr)
     uv_fileno(reinterpret_cast<uv_handle_t*>(stream()), &fd);
   return fd;
-#endif
 }
 
 
@@ -192,12 +188,17 @@ bool UDTStreamWrap::IsIPCPipe() {
 
 
 int UDTStreamWrap::ReadStart() {
-  return uvudt_read_start(stream(), 
-     [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
-    static_cast<UDTStreamWrap*>(static_cast<uvudt_t*>(handle)->data)->OnUvAlloc(suggested_size, buf);
-  }, [](uvudt_t* stream, ssize_t nread, const uv_buf_t* buf) {
-    static_cast<UDTStreamWrap*>(stream->data)->OnUvRead(nread, buf);
-  });
+  return uvudt_read_start(
+      stream(),
+      [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+        static_cast<UDTStreamWrap*>(handle->data)
+            ->OnUvAlloc(suggested_size, buf);
+      },
+      [](uvudt_t* stream, ssize_t nread, const uv_buf_t* buf) {
+        static_cast<UDTStreamWrap*>(
+            reinterpret_cast<uv_handle_t*>(stream)->data)
+            ->OnUvRead(nread, buf);
+      });
 }
 
 
@@ -253,8 +254,22 @@ void UDTStreamWrap::SetBlocking(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(uvudt_set_blocking(wrap->stream(), enable));
 }
 
-typedef SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> UDTShutdownWrap;
 typedef SimpleWriteWrap<ReqWrap<uvudt_write_t>> UDTWriteWrap;
+
+class UDTShutdownWrap : public SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> {
+public:
+ UDTShutdownWrap(StreamBase* stream,
+                 v8::Local<v8::Object> req_wrap_obj);
+
+ virtual ~UDTShutdownWrap();
+
+ virtual void Cancel() final {}
+};
+
+UDTShutdownWrap::UDTShutdownWrap(StreamBase* stream, 
+                                 v8::Local<v8::Object> req_wrap_obj)
+ : SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> (stream, req_wrap_obj)
+ {}
 
 ShutdownWrap* UDTStreamWrap::CreateShutdownWrap(Local<Object> object) {
   return new UDTShutdownWrap(this, object);
@@ -321,9 +336,9 @@ int UDTStreamWrap::DoTryWrite(uv_buf_t** bufs, size_t* count) {
 }
 
 int UDTStreamWrap::DoWrite(WriteWrap* req_wrap,
-                     uv_buf_t* bufs,
-                     size_t count,
-                     uvudt_t* send_handle) {
+                           uv_buf_t* bufs,
+                           size_t count,
+                           uv_stream_t* send_handle) {
   UDTWriteWrap* w = static_cast<UDTWriteWrap*>(req_wrap);
   return w->Dispatch(uvudt_write2,
                      stream(),

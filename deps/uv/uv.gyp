@@ -101,7 +101,8 @@
         'uvudt/UDT4/src/udtc.cpp',
         'uvudt/UDT4/src/window.cpp',
         'uvudt/uvudt.c',
-        'uvudt/udtstream.c'
+        'uvudt/udtstream.c',
+        'uvudt/uvudt.h'
       ],
       'xcode_settings': {
         'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',  # -fvisibility=hidden
