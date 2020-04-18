@@ -261,15 +261,14 @@ public:
  UDTShutdownWrap(StreamBase* stream,
                  v8::Local<v8::Object> req_wrap_obj);
 
- virtual ~UDTShutdownWrap();
+ virtual ~UDTShutdownWrap() {}
 
  virtual void Cancel() final {}
 };
 
 UDTShutdownWrap::UDTShutdownWrap(StreamBase* stream, 
-                                 v8::Local<v8::Object> req_wrap_obj)
- : SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> (stream, req_wrap_obj)
- {}
+                                 v8::Local<v8::Object> req_wrap_obj) 
+    : SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> (stream, req_wrap_obj) {}
 
 ShutdownWrap* UDTStreamWrap::CreateShutdownWrap(Local<Object> object) {
   return new UDTShutdownWrap(this, object);
@@ -359,5 +358,5 @@ void UDTStreamWrap::AfterUvWrite(uvudt_write_t* req, int status) {
 
 }  // namespace node
 
-NODE_MODULE_CONTEXT_AWARE_INTERNAL(udt_wrap,
+NODE_MODULE_CONTEXT_AWARE_INTERNAL(udtstream_wrap,
                                    node::UDTStreamWrap::Initialize)

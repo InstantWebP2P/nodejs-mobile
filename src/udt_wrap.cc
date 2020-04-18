@@ -106,12 +106,12 @@ void UDTWrap::Initialize(Local<Object> target,
               t->GetFunction(env->context()).ToLocalChecked()).Check();
   env->set_udt_constructor_template(t);
 
-  // Create FunctionTemplate for UDTConnectWrap.
+  // Create FunctionTemplate for UDT ConnectWrap.
   Local<FunctionTemplate> cwt =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
   cwt->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> wrapString =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "UDTConnectWrap");
+      FIXED_ONE_BYTE_STRING(env->isolate(), "ConnectWrap");
   cwt->SetClassName(wrapString);
   target->Set(env->context(),
               wrapString,
@@ -196,7 +196,7 @@ void UDTWrap::Open(const FunctionCallbackInfo<Value>& args) {
   int64_t val;
   if (!args[0]->IntegerValue(args.GetIsolate()->GetCurrentContext()).To(&val))
     return;
-  int fd = static_cast<int>(val);
+  uv_os_sock_t fd = static_cast<uv_os_sock_t>(val);
   int err = uvudt_open(&wrap->handle_, fd);
 
   args.GetReturnValue().Set(err);
@@ -311,60 +311,6 @@ void UDTWrap::Connect(const FunctionCallbackInfo<Value>& args,
   }
 
   args.GetReturnValue().Set(err);
-}
-
-
-// also used by udp_wrap.cc
-Local<Object> AddressToJS(Environment* env,
-                          const sockaddr* addr,
-                          Local<Object> info) {
-  EscapableHandleScope scope(env->isolate());
-  char ip[INET6_ADDRSTRLEN];
-  const sockaddr_in* a4;
-  const sockaddr_in6* a6;
-  int port;
-
-  if (info.IsEmpty())
-    info = Object::New(env->isolate());
-
-  switch (addr->sa_family) {
-  case AF_INET6:
-    a6 = reinterpret_cast<const sockaddr_in6*>(addr);
-    uv_inet_ntop(AF_INET6, &a6->sin6_addr, ip, sizeof ip);
-    port = ntohs(a6->sin6_port);
-    info->Set(env->context(),
-              env->address_string(),
-              OneByteString(env->isolate(), ip)).Check();
-    info->Set(env->context(),
-              env->family_string(),
-              env->ipv6_string()).Check();
-    info->Set(env->context(),
-              env->port_string(),
-              Integer::New(env->isolate(), port)).Check();
-    break;
-
-  case AF_INET:
-    a4 = reinterpret_cast<const sockaddr_in*>(addr);
-    uv_inet_ntop(AF_INET, &a4->sin_addr, ip, sizeof ip);
-    port = ntohs(a4->sin_port);
-    info->Set(env->context(),
-              env->address_string(),
-              OneByteString(env->isolate(), ip)).Check();
-    info->Set(env->context(),
-              env->family_string(),
-              env->ipv4_string()).Check();
-    info->Set(env->context(),
-              env->port_string(),
-              Integer::New(env->isolate(), port)).Check();
-    break;
-
-  default:
-    info->Set(env->context(),
-              env->address_string(),
-              String::Empty(env->isolate())).Check();
-  }
-
-  return scope.Escape(info);
 }
 
 
