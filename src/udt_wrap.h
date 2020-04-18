@@ -24,78 +24,104 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
+#include "stream_base.h"
 #include "handle_wrap.h"
-#include "uv.h"
-#include "uvudt.h"
 #include "v8.h"
 
 namespace node {
 
 class Environment;
 
-class UDTWrap: public HandleWrap {
+class UDTWrap : public HandleWrap, public StreamBase {
  public:
-  enum SocketType {
-    SOCKET,
-    SERVER
-  };
   static void Initialize(v8::Local<v8::Object> target,
                          v8::Local<v8::Value> unused,
                          v8::Local<v8::Context> context,
                          void* priv);
 
-  static void GetFD(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void SetNoDelay(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void SetKeepAlive(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Open(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Bind(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Connect(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Write(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Bind6(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Listen(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Connect6(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Write6(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void Shutdown(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void ReadStart(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static void ReadStop(const v8::FunctionCallbackInfo<v8::Value>& args);
+  int GetFD() override;
+  bool IsAlive() override;
+  bool IsClosing() override;
+  bool IsIPCPipe() override;
 
-  static v8::MaybeLocal<v8::Object> Instantiate(Environment* env,
-                                                AsyncWrap* parent,
-                                                SocketType type);
-  SET_NO_MEMORY_INFO()
-  SET_MEMORY_INFO_NAME(UDTWrap)
-  SET_SELF_SIZE(UDTWrap)
- 
+  // JavaScript functions
+  int ReadStart() override;
+  int ReadStop() override;
+
+  // Resource implementation
+  int DoShutdown(ShutdownWrap* req_wrap) override;
+  int DoTryWrite(uv_buf_t** bufs, size_t* count) override;
+  int DoWrite(WriteWrap* w,
+              uv_buf_t* bufs,
+              size_t count,
+              uv_stream_t* send_handle) override;
+
+  inline uvudt_t* stream() const {
+    return stream_;
+  }
+
+  inline bool is_named_pipe() const {
+    return stream()->type == UV_NAMED_PIPE;
+  }
+
+  inline bool is_named_pipe_ipc() const {
+    return is_named_pipe() &&
+           reinterpret_cast<const uv_pipe_t*>(stream())->ipc != 0;
+  }
+
+  inline bool is_tcp() const {
+    return stream()->type == UV_TCP;
+  }
+
+  ShutdownWrap* CreateShutdownWrap(v8::Local<v8::Object> object) override;
+  WriteWrap* CreateWriteWrap(v8::Local<v8::Object> object) override;
+
+  static UDTWrap* From(Environment* env, v8::Local<v8::Object> object);
+
+ protected:
+  UDTWrap(Environment* env,
+          v8::Local<v8::Object> object,
+          uvudt_t* stream,
+          AsyncWrap::ProviderType provider);
+
+  AsyncWrap* GetAsyncWrap() override;
+
+  static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
+      Environment* env);
+
+ protected:
+  inline void set_fd(int fd) {
+#ifdef _WIN32
+    fd_ = fd;
+#endif
+  }
+
 
  private:
-  typedef uvudt_t HandleType;
+  static void GetWriteQueueSize(
+      const v8::FunctionCallbackInfo<v8::Value>& info);
+  static void SetBlocking(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  template <typename T,
-            int (*F)(const typename T::HandleType*, sockaddr*, int*)>
-  friend void GetSockOrPeerName(const v8::FunctionCallbackInfo<v8::Value>&);
+  // Callbacks for libuv
+  void OnUvAlloc(size_t suggested_size, uv_buf_t* buf);
+  void OnUvRead(ssize_t nread, const uv_buf_t* buf);
 
-  UDTWrap(Environment* env, v8::Local<v8::Object> object);
+  static void AfterUvWrite(uv_write_t* req, int status);
+  static void AfterUvShutdown(uv_shutdown_t* req, int status);
 
-  static void DoBind(const v8::FunctionCallbackInfo<v8::Value>& args,
-                     int family);
-  static void DoConnect(const v8::FunctionCallbackInfo<v8::Value>& args,
-                     int family);
-  static void DoWrite(const v8::FunctionCallbackInfo<v8::Value>& args,
-                     int family);
+  uvudt_t* const stream_;
 
-  static void OnAlloc(size_t suggested_size, uv_buf_t* buf);
-  static void OnWrite(uvudt_write_t* req, int status);
-  static void OnRead(size_t nread, const uv_buf_t* buf);
-  static void OnConnection(uvudt_t* handle, int status);
-  static void AfterConnect(uvudt_connect_t* req, int status);
-  static void AfterShutdown(uvudt_shutdown_t* req, int status);
-  static void GetWriteQueueSize(const v8::FunctionCallbackInfo<v8::Value>& info);
-
-  virtual void OnClose(){uvudt_close(handle_);}
-
-  uvudt_t* const handle_;
+#ifdef _WIN32
+  // We don't always have an FD that we could look up on the stream_
+  // object itself on Windows. However, for some cases, we open handles
+  // using FDs; In that case, we can store and provide the value.
+  // This became necessary because it allows to detect situations
+  // where multiple handles refer to the same stdio FDs (in particular,
+  // a possible IPC channel and a regular process.std??? stream).
+  int fd_ = -1;
+#endif
 };
+
 
 }  // namespace node
 
