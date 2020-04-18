@@ -24,102 +24,69 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
-#include "stream_base.h"
-#include "handle_wrap.h"
-#include "v8.h"
+#include "async_wrap.h"
+#include "udtconnection_wrap.h"
+
+#include "uvudt.h"
 
 namespace node {
 
 class Environment;
 
-class UDTWrap : public HandleWrap, public StreamBase {
+class UDTWrap : public UDTConnectionWrap<UDTWrap, uvudt_t> {
  public:
+  enum SocketType {
+    SOCKET,
+    SERVER
+  };
+
+  static v8::MaybeLocal<v8::Object> Instantiate(Environment* env,
+                                                AsyncWrap* parent,
+                                                SocketType type);
   static void Initialize(v8::Local<v8::Object> target,
                          v8::Local<v8::Value> unused,
                          v8::Local<v8::Context> context,
                          void* priv);
 
-  int GetFD() override;
-  bool IsAlive() override;
-  bool IsClosing() override;
-  bool IsIPCPipe() override;
-
-  // JavaScript functions
-  int ReadStart() override;
-  int ReadStop() override;
-
-  // Resource implementation
-  int DoShutdown(ShutdownWrap* req_wrap) override;
-  int DoTryWrite(uv_buf_t** bufs, size_t* count) override;
-  int DoWrite(WriteWrap* w,
-              uv_buf_t* bufs,
-              size_t count,
-              uv_stream_t* send_handle) override;
-
-  inline uvudt_t* stream() const {
-    return stream_;
+  SET_NO_MEMORY_INFO()
+  SET_SELF_SIZE(UDTWrap)
+  std::string MemoryInfoName() const override {
+    switch (provider_type()) {
+      case ProviderType::PROVIDER_UDTWRAP:
+        return "UDTSocketWrap";
+      case ProviderType::PROVIDER_UDTSERVERWRAP:
+        return "UDTServerWrap";
+      default:
+        UNREACHABLE();
+    }
   }
 
-  inline bool is_named_pipe() const {
-    return stream()->type == UV_NAMED_PIPE;
-  }
+private:
+ typedef uvudt_t HandleType;
 
-  inline bool is_named_pipe_ipc() const {
-    return is_named_pipe() &&
-           reinterpret_cast<const uv_pipe_t*>(stream())->ipc != 0;
-  }
+ template <typename T, int (*F)(const typename T::HandleType*, sockaddr*, int*)>
+ friend void GetSockOrPeerName(const v8::FunctionCallbackInfo<v8::Value>&);
 
-  inline bool is_tcp() const {
-    return stream()->type == UV_TCP;
-  }
+ UDTWrap(Environment* env, v8::Local<v8::Object> object, ProviderType provider);
 
-  ShutdownWrap* CreateShutdownWrap(v8::Local<v8::Object> object) override;
-  WriteWrap* CreateWriteWrap(v8::Local<v8::Object> object) override;
-
-  static UDTWrap* From(Environment* env, v8::Local<v8::Object> object);
-
- protected:
-  UDTWrap(Environment* env,
-          v8::Local<v8::Object> object,
-          uvudt_t* stream,
-          AsyncWrap::ProviderType provider);
-
-  AsyncWrap* GetAsyncWrap() override;
-
-  static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
-      Environment* env);
-
- protected:
-  inline void set_fd(int fd) {
-#ifdef _WIN32
-    fd_ = fd;
-#endif
-  }
-
-
- private:
-  static void GetWriteQueueSize(
-      const v8::FunctionCallbackInfo<v8::Value>& info);
-  static void SetBlocking(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-  // Callbacks for libuv
-  void OnUvAlloc(size_t suggested_size, uv_buf_t* buf);
-  void OnUvRead(ssize_t nread, const uv_buf_t* buf);
-
-  static void AfterUvWrite(uv_write_t* req, int status);
-  static void AfterUvShutdown(uv_shutdown_t* req, int status);
-
-  uvudt_t* const stream_;
-
-#ifdef _WIN32
-  // We don't always have an FD that we could look up on the stream_
-  // object itself on Windows. However, for some cases, we open handles
-  // using FDs; In that case, we can store and provide the value.
-  // This became necessary because it allows to detect situations
-  // where multiple handles refer to the same stdio FDs (in particular,
-  // a possible IPC channel and a regular process.std??? stream).
-  int fd_ = -1;
-#endif
+ static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void SetNoDelay(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void SetKeepAlive(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Bind(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Bind6(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Listen(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Connect(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Connect6(const v8::FunctionCallbackInfo<v8::Value>& args);
+ template <typename T>
+ static void Connect(
+     const v8::FunctionCallbackInfo<v8::Value>& args,
+     std::function<int(const char* ip_address, T* addr)> uv_ip_addr);
+ static void Open(const v8::FunctionCallbackInfo<v8::Value>& args);
+ template <typename T>
+ static void Bind(
+     const v8::FunctionCallbackInfo<v8::Value>& args,
+     int family,
+     std::function<int(const char* ip_address, int port, T* addr)> uv_ip_addr);      
 };
 
 

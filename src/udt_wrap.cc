@@ -20,329 +20,356 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "udt_wrap.h"
-#include "stream_base-inl.h"
 
+#include "udtconnection_wrap.h"
 #include "env-inl.h"
 #include "handle_wrap.h"
 #include "node_buffer.h"
-#include "req_wrap-inl.h"
+#include "node_internals.h"
+#include "udtconnect_wrap.h"
+#include "stream_base-inl.h"
+#include "udtstream_wrap.h"
 #include "util-inl.h"
 
-#include <cstring>  // memcpy()
-#include <climits>  // INT_MAX
+#include <cstdlib>
 
 
 namespace node {
 
+using v8::Boolean;
 using v8::Context;
-using v8::DontDelete;
 using v8::EscapableHandleScope;
+using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::HandleScope;
+using v8::Int32;
+using v8::Integer;
 using v8::Local;
 using v8::MaybeLocal;
 using v8::Object;
-using v8::ReadOnly;
-using v8::Signature;
+using v8::String;
+using v8::Uint32;
 using v8::Value;
+
+MaybeLocal<Object> UDTWrap::Instantiate(Environment* env,
+                                        AsyncWrap* parent,
+                                        UDTWrap::SocketType type) {
+  EscapableHandleScope handle_scope(env->isolate());
+  AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(parent);
+  CHECK_EQ(env->udt_constructor_template().IsEmpty(), false);
+  Local<Function> constructor = env->udt_constructor_template()
+                                    ->GetFunction(env->context())
+                                    .ToLocalChecked();
+  CHECK_EQ(constructor.IsEmpty(), false);
+  Local<Value> type_value = Int32::New(env->isolate(), type);
+  return handle_scope.EscapeMaybe(
+      constructor->NewInstance(env->context(), 1, &type_value));
+}
 
 
 void UDTWrap::Initialize(Local<Object> target,
-                                 Local<Value> unused,
-                                 Local<Context> context,
-                                 void* priv) {
+                         Local<Value> unused,
+                         Local<Context> context,
+                         void* priv) {
   Environment* env = Environment::GetCurrent(context);
 
-  auto is_construct_call_callback =
-      [](const FunctionCallbackInfo<Value>& args) {
-    CHECK(args.IsConstructCall());
-    StreamReq::ResetObject(args.This());
-  };
-  Local<FunctionTemplate> sw =
-      FunctionTemplate::New(env->isolate(), is_construct_call_callback);
-  sw->InstanceTemplate()->SetInternalFieldCount(
-      StreamReq::kStreamReqField + 1 + 3);
+  Local<FunctionTemplate> t = env->NewFunctionTemplate(New);
+  Local<String> udtString = FIXED_ONE_BYTE_STRING(env->isolate(), "UDT");
+  t->SetClassName(udtString);
+  t->InstanceTemplate()
+    ->SetInternalFieldCount(StreamBase::kStreamBaseFieldCount);
+
+  // Init properties
+  t->InstanceTemplate()->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "reading"),
+                             Boolean::New(env->isolate(), false));
+  t->InstanceTemplate()->Set(env->owner_symbol(), Null(env->isolate()));
+  t->InstanceTemplate()->Set(env->onconnection_string(), Null(env->isolate()));
+
+  t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
+
+  env->SetProtoMethod(t, "open", Open);
+  env->SetProtoMethod(t, "bind", Bind);
+  env->SetProtoMethod(t, "listen", Listen);
+  env->SetProtoMethod(t, "connect", Connect);
+  env->SetProtoMethod(t, "bind6", Bind6);
+  env->SetProtoMethod(t, "connect6", Connect6);
+  env->SetProtoMethod(t, "getsockname",
+                      GetSockOrPeerName<UDTWrap, uvudt_getsockname>);
+  env->SetProtoMethod(t, "getpeername",
+                      GetSockOrPeerName<UDTWrap, uvudt_getpeername>);
+  env->SetProtoMethod(t, "setNoDelay", SetNoDelay);
+  env->SetProtoMethod(t, "setKeepAlive", SetKeepAlive);
+
+  target->Set(env->context(),
+              udtString,
+              t->GetFunction(env->context()).ToLocalChecked()).Check();
+  env->set_udt_constructor_template(t);
+
+  // Create FunctionTemplate for UDTConnectWrap.
+  Local<FunctionTemplate> cwt =
+      BaseObject::MakeLazilyInitializedJSTemplate(env);
+  cwt->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> wrapString =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "ShutdownWrap");
-  sw->SetClassName(wrapString);
-
-  // we need to set handle and callback to null,
-  // so that those fields are created and functions
-  // do not become megamorphic
-  // Fields:
-  // - oncomplete
-  // - callback
-  // - handle
-  sw->InstanceTemplate()->Set(
-      env->oncomplete_string(),
-      v8::Null(env->isolate()));
-  sw->InstanceTemplate()->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "callback"),
-      v8::Null(env->isolate()));
-  sw->InstanceTemplate()->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "handle"),
-      v8::Null(env->isolate()));
-
-  sw->Inherit(AsyncWrap::GetConstructorTemplate(env));
-
+      FIXED_ONE_BYTE_STRING(env->isolate(), "ConnectWrap");
+  cwt->SetClassName(wrapString);
   target->Set(env->context(),
               wrapString,
-              sw->GetFunction(env->context()).ToLocalChecked()).Check();
-  env->set_shutdown_wrap_template(sw->InstanceTemplate());
+              cwt->GetFunction(env->context()).ToLocalChecked()).Check();
 
-  Local<FunctionTemplate> ww =
-      FunctionTemplate::New(env->isolate(), is_construct_call_callback);
-  ww->InstanceTemplate()->SetInternalFieldCount(StreamReq::kStreamReqField + 1);
-  Local<String> writeWrapString =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "WriteWrap");
-  ww->SetClassName(writeWrapString);
-  ww->Inherit(AsyncWrap::GetConstructorTemplate(env));
-  target->Set(env->context(),
-              writeWrapString,
-              ww->GetFunction(env->context()).ToLocalChecked()).Check();
-  env->set_write_wrap_template(ww->InstanceTemplate());
-
-  NODE_DEFINE_CONSTANT(target, kReadBytesOrError);
-  NODE_DEFINE_CONSTANT(target, kArrayBufferOffset);
-  NODE_DEFINE_CONSTANT(target, kBytesWritten);
-  NODE_DEFINE_CONSTANT(target, kLastWriteWasAsync);
-  target->Set(context, FIXED_ONE_BYTE_STRING(env->isolate(), "streamBaseState"),
-              env->stream_base_state().GetJSArray()).Check();
+  // Define constants
+  Local<Object> constants = Object::New(env->isolate());
+  NODE_DEFINE_CONSTANT(constants, SOCKET);
+  NODE_DEFINE_CONSTANT(constants, SERVER);
+  NODE_DEFINE_CONSTANT(constants, UV_UDT_IPV6ONLY);
+  target->Set(context,
+              env->constants_string(),
+              constants).Check();
 }
 
 
-UDTWrap::UDTWrap(Environment* env,
-                 Local<Object> object,
-                 uvudt_t* stream,
-                 AsyncWrap::ProviderType provider)
-    : HandleWrap(env,
-                 object,
-                 reinterpret_cast<uv_handle_t*>(stream),
-                 provider),
-      StreamBase(env),
-      stream_(stream) {
-  StreamBase::AttachToObject(object);
-}
+void UDTWrap::New(const FunctionCallbackInfo<Value>& args) {
+  // This constructor should not be exposed to public javascript.
+  // Therefore we assert that we are not trying to call this as a
+  // normal function.
+  CHECK(args.IsConstructCall());
+  CHECK(args[0]->IsInt32());
+  Environment* env = Environment::GetCurrent(args);
 
+  int type_value = args[0].As<Int32>()->Value();
+  UDTWrap::SocketType type = static_cast<UDTWrap::SocketType>(type_value);
 
-Local<FunctionTemplate> UDTWrap::GetConstructorTemplate(
-    Environment* env) {
-  Local<FunctionTemplate> tmpl = env->libuv_udt_wrap_ctor_template();
-  if (tmpl.IsEmpty()) {
-    tmpl = env->NewFunctionTemplate(nullptr);
-    tmpl->SetClassName(
-        FIXED_ONE_BYTE_STRING(env->isolate(), "UDTWrap"));
-    tmpl->Inherit(HandleWrap::GetConstructorTemplate(env));
-    tmpl->InstanceTemplate()->SetInternalFieldCount(
-        StreamBase::kStreamBaseFieldCount);
-    Local<FunctionTemplate> get_write_queue_size =
-        FunctionTemplate::New(env->isolate(),
-                              GetWriteQueueSize,
-                              env->as_callback_data(),
-                              Signature::New(env->isolate(), tmpl));
-    tmpl->PrototypeTemplate()->SetAccessorProperty(
-        env->write_queue_size_string(),
-        get_write_queue_size,
-        Local<FunctionTemplate>(),
-        static_cast<PropertyAttribute>(ReadOnly | DontDelete));
-    env->SetProtoMethod(tmpl, "setBlocking", SetBlocking);
-    StreamBase::AddMethods(env, tmpl);
-    env->set_libuv_udt_wrap_ctor_template(tmpl);
+  ProviderType provider;
+  switch (type) {
+    case SOCKET:
+      provider = PROVIDER_UDTWRAP;
+      break;
+    case SERVER:
+      provider = PROVIDER_UDTSERVERWRAP;
+      break;
+    default:
+      UNREACHABLE();
   }
-  return tmpl;
+
+  new UDTWrap(env, args.This(), provider);
 }
 
 
-UDTWrap* UDTWrap::From(Environment* env, Local<Object> object) {
-  Local<FunctionTemplate> sw = env->libuv_udt_wrap_ctor_template();
-  CHECK(!sw.IsEmpty() && sw->HasInstance(object));
-  return Unwrap<UDTWrap>(object);
+UDTWrap::UDTWrap(Environment* env, Local<Object> object, ProviderType provider)
+    : ConnectionWrap(env, object, provider) {
+  int r = uvudt_init(env->event_loop(), &handle_);
+  CHECK_EQ(r, 0);  // How do we proxy this error up to javascript?
+                   // Suggestion: uvudt_init() returns void.
 }
 
 
-int UDTWrap::GetFD() {
-#ifdef _WIN32
-  return fd_;
-#else
-  int fd = -1;
-  if (stream() != nullptr)
-    uv_fileno(reinterpret_cast<uv_handle_t*>(stream()), &fd);
-  return fd;
-#endif
+void UDTWrap::SetNoDelay(const FunctionCallbackInfo<Value>& args) {
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+  int enable = static_cast<int>(args[0]->IsTrue());
+  int err = uvudt_nodelay(&wrap->handle_, enable);
+  args.GetReturnValue().Set(err);
 }
 
 
-bool UDTWrap::IsAlive() {
-  return HandleWrap::IsAlive(this);
+void UDTWrap::SetKeepAlive(const FunctionCallbackInfo<Value>& args) {
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+  Environment* env = wrap->env();
+  int enable;
+  if (!args[0]->Int32Value(env->context()).To(&enable)) return;
+  unsigned int delay = args[1].As<Uint32>()->Value();
+  int err = uvudt_keepalive(&wrap->handle_, enable, delay);
+  args.GetReturnValue().Set(err);
 }
 
 
-bool UDTWrap::IsClosing() {
-  return uv_is_closing(reinterpret_cast<uv_handle_t*>(stream()));
+void UDTWrap::Open(const FunctionCallbackInfo<Value>& args) {
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+  int64_t val;
+  if (!args[0]->IntegerValue(args.GetIsolate()->GetCurrentContext()).To(&val))
+    return;
+  int fd = static_cast<int>(val);
+  int err = uvudt_open(&wrap->handle_, fd);
+
+  if (err == 0)
+    wrap->set_fd(fd);
+
+  args.GetReturnValue().Set(err);
+}
+
+template <typename T>
+void UDTWrap::Bind(
+    const FunctionCallbackInfo<Value>& args,
+    int family,
+    std::function<int(const char* ip_address, int port, T* addr)> uv_ip_addr) {
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+  Environment* env = wrap->env();
+  node::Utf8Value ip_address(env->isolate(), args[0]);
+  int port;
+  unsigned int flags = 0;
+  if (!args[1]->Int32Value(env->context()).To(&port)) return;
+  if (family == AF_INET6 &&
+      !args[2]->Uint32Value(env->context()).To(&flags)) {
+    return;
+  }
+
+  T addr;
+  int err = uv_ip_addr(*ip_address, port, &addr);
+
+  if (err == 0) {
+    err = uvudt_bind(&wrap->handle_,
+                      reinterpret_cast<const sockaddr*>(&addr),
+                      flags);
+  }
+  args.GetReturnValue().Set(err);
+}
+
+void UDTWrap::Bind(const FunctionCallbackInfo<Value>& args) {
+  Bind<sockaddr_in>(args, AF_INET, uv_ip4_addr);
 }
 
 
-AsyncWrap* UDTWrap::GetAsyncWrap() {
-  return static_cast<AsyncWrap*>(this);
+void UDTWrap::Bind6(const FunctionCallbackInfo<Value>& args) {
+  Bind<sockaddr_in6>(args, AF_INET6, uv_ip6_addr);
 }
 
 
-bool UDTWrap::IsIPCPipe() {
-  return false;
+void UDTWrap::Listen(const FunctionCallbackInfo<Value>& args) {
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+  Environment* env = wrap->env();
+  int backlog;
+  if (!args[0]->Int32Value(env->context()).To(&backlog)) return;
+  int err = uvudt_listen(reinterpret_cast<uvudt_t*>(&wrap->handle_),
+                         backlog,
+                         OnConnection);
+  args.GetReturnValue().Set(err);
 }
 
 
-int UDTWrap::ReadStart() {
-  return uvudt_read_start(stream(), 
-     [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
-    static_cast<UDTWrap*>(static_cast<uvudt_t*>(handle)->data)->OnUvAlloc(suggested_size, buf);
-  }, [](uvudt_t* stream, ssize_t nread, const uv_buf_t* buf) {
-    static_cast<UDTWrap*>(stream->data)->OnUvRead(nread, buf);
+void UDTWrap::Connect(const FunctionCallbackInfo<Value>& args) {
+  CHECK(args[2]->IsUint32());
+  int port = args[2].As<Uint32>()->Value();
+  Connect<sockaddr_in>(args,
+                       [port](const char* ip_address, sockaddr_in* addr) {
+      return uv_ip4_addr(ip_address, port, addr);
   });
 }
 
 
-int UDTWrap::ReadStop() {
-  return uvudt_read_stop(stream());
+void UDTWrap::Connect6(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  CHECK(args[2]->IsUint32());
+  int port;
+  if (!args[2]->Int32Value(env->context()).To(&port)) return;
+  Connect<sockaddr_in6>(args,
+                        [port](const char* ip_address, sockaddr_in6* addr) {
+      return uv_ip6_addr(ip_address, port, addr);
+  });
 }
 
+template <typename T>
+void UDTWrap::Connect(const FunctionCallbackInfo<Value>& args,
+    std::function<int(const char* ip_address, T* addr)> uv_ip_addr) {
+  Environment* env = Environment::GetCurrent(args);
 
-void UDTWrap::OnUvAlloc(size_t suggested_size, uv_buf_t* buf) {
-  HandleScope scope(env()->isolate());
-  Context::Scope context_scope(env()->context());
-
-  *buf = EmitAlloc(suggested_size);
-}
-
-
-void UDTWrap::OnUvRead(ssize_t nread, const uv_buf_t* buf) {
-  HandleScope scope(env()->isolate());
-  Context::Scope context_scope(env()->context());
-
-  // We should not be getting this callback if someone has already called
-  // uv_close() on the handle.
-  CHECK_EQ(persistent().IsEmpty(), false);
-
-  EmitRead(nread, *buf);
-}
-
-
-void UDTWrap::GetWriteQueueSize(
-    const FunctionCallbackInfo<Value>& info) {
   UDTWrap* wrap;
-  ASSIGN_OR_RETURN_UNWRAP(&wrap, info.This());
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
 
-  if (wrap->stream() == nullptr) {
-    info.GetReturnValue().Set(0);
-    return;
+  CHECK(args[0]->IsObject());
+  CHECK(args[1]->IsString());
+
+  Local<Object> req_wrap_obj = args[0].As<Object>();
+  node::Utf8Value ip_address(env->isolate(), args[1]);
+
+  T addr;
+  int err = uv_ip_addr(*ip_address, &addr);
+
+  if (err == 0) {
+    AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(wrap);
+    ConnectWrap* req_wrap =
+        new ConnectWrap(env, req_wrap_obj, AsyncWrap::PROVIDER_UDTCONNECTWRAP);
+    err = req_wrap->Dispatch(uvudt_connect,
+                             &wrap->handle_,
+                             reinterpret_cast<const sockaddr*>(&addr),
+                             AfterConnect);
+    if (err)
+      delete req_wrap;
   }
 
-  uint32_t write_queue_size = wrap->stream()->write_queue_size;
-  info.GetReturnValue().Set(write_queue_size);
+  args.GetReturnValue().Set(err);
 }
 
 
-void UDTWrap::SetBlocking(const FunctionCallbackInfo<Value>& args) {
-  UDTWrap* wrap;
-  ASSIGN_OR_RETURN_UNWRAP(&wrap, args.Holder());
+// also used by udp_wrap.cc
+Local<Object> AddressToJS(Environment* env,
+                          const sockaddr* addr,
+                          Local<Object> info) {
+  EscapableHandleScope scope(env->isolate());
+  char ip[INET6_ADDRSTRLEN];
+  const sockaddr_in* a4;
+  const sockaddr_in6* a6;
+  int port;
 
-  CHECK_GT(args.Length(), 0);
-  if (!wrap->IsAlive())
-    return args.GetReturnValue().Set(UV_EINVAL);
+  if (info.IsEmpty())
+    info = Object::New(env->isolate());
 
-  bool enable = args[0]->IsTrue();
-  args.GetReturnValue().Set(uv_stream_set_blocking(wrap->stream(), enable));
-}
+  switch (addr->sa_family) {
+  case AF_INET6:
+    a6 = reinterpret_cast<const sockaddr_in6*>(addr);
+    uv_inet_ntop(AF_INET6, &a6->sin6_addr, ip, sizeof ip);
+    port = ntohs(a6->sin6_port);
+    info->Set(env->context(),
+              env->address_string(),
+              OneByteString(env->isolate(), ip)).Check();
+    info->Set(env->context(),
+              env->family_string(),
+              env->ipv6_string()).Check();
+    info->Set(env->context(),
+              env->port_string(),
+              Integer::New(env->isolate(), port)).Check();
+    break;
 
-typedef SimpleShutdownWrap<ReqWrap<uvudt_shutdown_t>> UDTShutdownWrap;
-typedef SimpleWriteWrap<ReqWrap<uvudt_write_t>> UDTWriteWrap;
+  case AF_INET:
+    a4 = reinterpret_cast<const sockaddr_in*>(addr);
+    uv_inet_ntop(AF_INET, &a4->sin_addr, ip, sizeof ip);
+    port = ntohs(a4->sin_port);
+    info->Set(env->context(),
+              env->address_string(),
+              OneByteString(env->isolate(), ip)).Check();
+    info->Set(env->context(),
+              env->family_string(),
+              env->ipv4_string()).Check();
+    info->Set(env->context(),
+              env->port_string(),
+              Integer::New(env->isolate(), port)).Check();
+    break;
 
-ShutdownWrap* UDTWrap::CreateShutdownWrap(Local<Object> object) {
-  return new UDTShutdownWrap(this, object);
-}
-
-WriteWrap* UDTWrap::CreateWriteWrap(Local<Object> object) {
-  return new UDTWriteWrap(this, object);
-}
-
-
-int UDTWrap::DoShutdown(ShutdownWrap* req_wrap_) {
-  UDTShutdownWrap* req_wrap = static_cast<UDTShutdownWrap*>(req_wrap_);
-  return req_wrap->Dispatch(uv_shutdown, stream(), AfterUvShutdown);
-}
-
-
-void UDTWrap::AfterUvShutdown(uvudt_shutdown_t* req, int status) {
-  UDTShutdownWrap* req_wrap = static_cast<UDTShutdownWrap*>(
-      UDTShutdownWrap::from_req(req));
-  CHECK_NOT_NULL(req_wrap);
-  HandleScope scope(req_wrap->env()->isolate());
-  Context::Scope context_scope(req_wrap->env()->context());
-  req_wrap->Done(status);
-}
-
-
-// NOTE: Call to this function could change both `buf`'s and `count`'s
-// values, shifting their base and decrementing their length. This is
-// required in order to skip the data that was successfully written via
-// uvudt_try_write().
-int UDTWrap::DoTryWrite(uv_buf_t** bufs, size_t* count) {
-  int err;
-  size_t written;
-  uv_buf_t* vbufs = *bufs;
-  size_t vcount = *count;
-
-  err = uvudt_try_write(stream(), vbufs, vcount);
-  if (err == UV_ENOSYS || err == UV_EAGAIN)
-    return 0;
-  if (err < 0)
-    return err;
-
-  // Slice off the buffers: skip all written buffers and slice the one that
-  // was partially written.
-  written = err;
-  for (; vcount > 0; vbufs++, vcount--) {
-    // Slice
-    if (vbufs[0].len > written) {
-      vbufs[0].base += written;
-      vbufs[0].len -= written;
-      written = 0;
-      break;
-
-    // Discard
-    } else {
-      written -= vbufs[0].len;
-    }
+  default:
+    info->Set(env->context(),
+              env->address_string(),
+              String::Empty(env->isolate())).Check();
   }
 
-  *bufs = vbufs;
-  *count = vcount;
-
-  return 0;
+  return scope.Escape(info);
 }
 
-int UDTWrap::DoWrite(WriteWrap* req_wrap,
-                     uv_buf_t* bufs,
-                     size_t count,
-                     uv_stream_t* send_handle) {
-  UDTWriteWrap* w = static_cast<UDTWriteWrap*>(req_wrap);
-  return w->Dispatch(uvudt_write2,
-                     stream(),
-                     bufs,
-                     count,
-                     send_handle,
-                     AfterUvWrite);
-}
-
-void UDTWrap::AfterUvWrite(uvudt_write_t* req, int status) {
-  UDTWriteWrap* req_wrap = static_cast<UDTWriteWrap*>(
-      UDTWriteWrap::from_req(req));
-  CHECK_NOT_NULL(req_wrap);
-  HandleScope scope(req_wrap->env()->isolate());
-  Context::Scope context_scope(req_wrap->env()->context());
-  req_wrap->Done(status);
-}
 
 }  // namespace node
 
-NODE_MODULE_CONTEXT_AWARE_INTERNAL(udt_wrap,
-                                   node::UDTWrap::Initialize)
+NODE_MODULE_CONTEXT_AWARE_INTERNAL(udt_wrap, node::UDTWrap::Initialize)
