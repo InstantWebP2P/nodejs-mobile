@@ -106,12 +106,12 @@ void UDTWrap::Initialize(Local<Object> target,
               t->GetFunction(env->context()).ToLocalChecked()).Check();
   env->set_udt_constructor_template(t);
 
-  // Create FunctionTemplate for UDT ConnectWrap.
+  // Create FunctionTemplate for UDTConnectWrap.
   Local<FunctionTemplate> cwt =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
   cwt->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> wrapString =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "ConnectWrap");
+      FIXED_ONE_BYTE_STRING(env->isolate(), "UDTConnectWrap");
   cwt->SetClassName(wrapString);
   target->Set(env->context(),
               wrapString,
