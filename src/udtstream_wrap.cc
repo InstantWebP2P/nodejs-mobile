@@ -237,7 +237,7 @@ void UDTStreamWrap::GetWriteQueueSize(
     return;
   }
 
-  uint32_t write_queue_size = wrap->stream()->write_queue_size;
+  uint32_t write_queue_size = uvudt_get_write_queue_size(wrap->stream());
   info.GetReturnValue().Set(write_queue_size);
 }
 
