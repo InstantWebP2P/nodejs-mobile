@@ -78,7 +78,7 @@ class UDTStreamWrap : public HandleWrap, public StreamBase {
   static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
       Environment* env);
 
-  virtual void OnClose() override { uvudt_close(stream_, NULL); }
+  void OnClose() override { uvudt_close(stream_, NULL); }
 
  private:
   static void GetWriteQueueSize(

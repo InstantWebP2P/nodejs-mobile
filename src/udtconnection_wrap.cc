@@ -31,7 +31,10 @@ UDTConnectionWrap<WrapType, UVType>::UDTConnectionWrap(Environment* env,
 template <typename WrapType, typename UVType>
 void UDTConnectionWrap<WrapType, UVType>::OnConnection(uvudt_t* handle,
                                                        int status) {
-  WrapType* wrap_data = static_cast<WrapType*>(reinterpret_cast<uv_handle_t*>(handle)->data);
+  CHECK_NOT_NULL(handle);
+
+  WrapType* wrap_data = static_cast<WrapType*>((reinterpret_cast<uv_handle_t*>(handle))->data);
+  
   CHECK_NOT_NULL(wrap_data);
   CHECK_EQ(&wrap_data->handle_, reinterpret_cast<UVType*>(handle));
 
@@ -78,7 +81,7 @@ void UDTConnectionWrap<WrapType, UVType>::AfterConnect(uvudt_connect_t* req,
   std::unique_ptr<UDTConnectWrap> req_wrap
     (static_cast<UDTConnectWrap*>(req->data));
   CHECK_NOT_NULL(req_wrap);
-  WrapType* wrap = static_cast<WrapType*>(reinterpret_cast<uv_handle_t*>(req->handle)->data);
+  WrapType* wrap = static_cast<WrapType*>((reinterpret_cast<uv_handle_t*>(req->handle))->data);
   CHECK_EQ(req_wrap->env(), wrap->env());
   Environment* env = wrap->env();
 
