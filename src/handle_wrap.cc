@@ -107,6 +107,9 @@ HandleWrap::HandleWrap(Environment* env,
     : AsyncWrap(env, object, provider),
       state_(kInitialized),
       handle_(handle) {
+  //!!! clear handle_
+  memset(handle_, 0, sizeof(*handle_));
+
   handle_->data = this;
   HandleScope scope(env->isolate());
   CHECK(env->has_run_bootstrapping_code());
