@@ -18,19 +18,20 @@ var cln = udt.connect({port: port, host: host}, function(){
     // network performance monitor
     var npm = setInterval(function(){
 
-    	var perf = cln.netPerf;
-
-    	console.log('socket network Bandwidth       :'+JSON.stringify(perf.mbpsBandwidth)+' Mb/s');
-    	console.log('socket network RTT             :'+JSON.stringify(perf.msRTT)+' ms');
-    	console.log('socket network PktSndPeriod    :'+JSON.stringify(perf.usPktSndPeriod)+' us');
-    	console.log('socket network SendRate        :'+JSON.stringify(perf.mbpsSendRate)+' Mb/s');
-    	console.log('socket network RecvRate        :'+JSON.stringify(perf.mbpsRecvRate)+' Mb/s');
-    	console.log('socket network CongestionWindow:'+JSON.stringify(perf.pktCongestionWindow));
-    	console.log('socket network RecvACK         :'+JSON.stringify(perf.pktRecvACK));
-    	console.log('socket network RecvNACK        :'+JSON.stringify(perf.pktRecvNAK));
-    	console.log('socket network AvailRcvBuf     :'+JSON.stringify(perf.byteAvailRcvBuf));
-    	console.log('socket network AvailSndBuf     :'+JSON.stringify(perf.byteAvailSndBuf)+'\n\n');
-
+        var perf = cln.netPerf;
+        
+        if (perf) {
+            console.log('socket network Bandwidth       :' + JSON.stringify(perf.mbpsBandwidth) + ' Mb/s');
+            console.log('socket network RTT             :' + JSON.stringify(perf.msRTT) + ' ms');
+            console.log('socket network PktSndPeriod    :' + JSON.stringify(perf.usPktSndPeriod) + ' us');
+            console.log('socket network SendRate        :' + JSON.stringify(perf.mbpsSendRate) + ' Mb/s');
+            console.log('socket network RecvRate        :' + JSON.stringify(perf.mbpsRecvRate) + ' Mb/s');
+            console.log('socket network CongestionWindow:' + JSON.stringify(perf.pktCongestionWindow));
+            console.log('socket network RecvACK         :' + JSON.stringify(perf.pktRecvACK));
+            console.log('socket network RecvNACK        :' + JSON.stringify(perf.pktRecvNAK));
+            console.log('socket network AvailRcvBuf     :' + JSON.stringify(perf.byteAvailRcvBuf));
+            console.log('socket network AvailSndBuf     :' + JSON.stringify(perf.byteAvailSndBuf) + '\n\n');
+        }
     }, 6000); // 6s
     
     // closure

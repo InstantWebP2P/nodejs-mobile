@@ -86,7 +86,12 @@ private:
  static void Bind(
      const v8::FunctionCallbackInfo<v8::Value>& args,
      int family,
-     std::function<int(const char* ip_address, int port, T* addr)> uv_ip_addr);      
+     std::function<int(const char* ip_address, int port, T* addr)> uv_ip_addr);
+
+ // UDT specific
+ static void GetNetPerf(const v8::FunctionCallbackInfo<v8::Value>& args);
+ ///////////////
+ 
 };
 
 

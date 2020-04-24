@@ -45,6 +45,7 @@ using v8::FunctionTemplate;
 using v8::HandleScope;
 using v8::Int32;
 using v8::Integer;
+using v8::Number;
 using v8::Local;
 using v8::MaybeLocal;
 using v8::Object;
@@ -100,6 +101,12 @@ void UDTWrap::Initialize(Local<Object> target,
                       GetSockOrPeerName<UDTWrap, uvudt_getpeername>);
   env->SetProtoMethod(t, "setNoDelay", SetNoDelay);
   env->SetProtoMethod(t, "setKeepAlive", SetKeepAlive);
+
+
+  // UDT specific //
+  env->SetProtoMethod(t, "getnetperf", GetNetPerf);
+  /////////////////
+
 
   target->Set(env->context(),
               udtString,
@@ -313,6 +320,187 @@ void UDTWrap::Connect(const FunctionCallbackInfo<Value>& args,
   args.GetReturnValue().Set(err);
 }
 
+
+// UDT specific api
+void UDTWrap::GetNetPerf(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(
+      &wrap, args.Holder(), args.GetReturnValue().Set(UV_EBADF));
+
+  CHECK(args[0]->IsObject());
+
+  // convert UDT perf struct to JS obj
+  v8::Local<v8::Object> info = args[0].As<v8::Object>();
+  if (info.IsEmpty()) info = Object::New(env->isolate());
+
+  uvudt_netperf_t perf;
+  int err = uvudt_getperf(reinterpret_cast<uvudt_t*>(&wrap->handle_), &perf, 1);
+#if 0
+typedef struct uvudt_netperf_s
+{
+    // global measurements
+    int64_t msTimeStamp;        // time since the UDT entity is started, in milliseconds
+    int64_t pktSentTotal;       // total number of sent data packets, including retransmissions
+    int64_t pktRecvTotal;       // total number of received packets
+    int pktSndLossTotal;        // total number of lost packets (sender side)
+    int pktRcvLossTotal;        // total number of lost packets (receiver side)
+    int pktRetransTotal;        // total number of retransmitted packets
+    int pktSentACKTotal;        // total number of sent ACK packets
+    int pktRecvACKTotal;        // total number of received ACK packets
+    int pktSentNAKTotal;        // total number of sent NAK packets
+    int pktRecvNAKTotal;        // total number of received NAK packets
+    int64_t usSndDurationTotal; // total time duration when UDT is sending data (idle time exclusive)
+
+    // local measurements
+    int64_t pktSent;            // number of sent data packets, including retransmissions
+    int64_t pktRecv;            // number of received packets
+    int pktSndLoss;             // number of lost packets (sender side)
+    int pktRcvLoss;             // number of lost packets (receiver side)
+    int pktRetrans;             // number of retransmitted packets
+    int pktSentACK;             // number of sent ACK packets
+    int pktRecvACK;             // number of received ACK packets
+    int pktSentNAK;             // number of sent NAK packets
+    int pktRecvNAK;             // number of received NAK packets
+    double mbpsSendRate;        // sending rate in Mb/s
+    double mbpsRecvRate;        // receiving rate in Mb/s
+    int64_t usSndDuration;      // busy sending time (i.e., idle time exclusive)
+#endif
+  if (err == 0) {
+    // instant measurements
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "byteAvailRcvBuf"),
+              Integer::New(env->isolate(), perf.byteAvailRcvBuf))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "byteAvailSndBuf"),
+              Integer::New(env->isolate(), perf.byteAvailSndBuf))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "mbpsBandwidth"),
+              Number::New(env->isolate(), perf.mbpsBandwidth))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "msRTT"),
+              Number::New(env->isolate(), perf.msRTT))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktFlightSize"),
+              Integer::New(env->isolate(), perf.pktFlightSize))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktCongestionWindow"),
+              Integer::New(env->isolate(), perf.pktCongestionWindow))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktFlowWindow"),
+              Integer::New(env->isolate(), perf.pktFlowWindow))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "usPktSndPeriod"),
+              Number::New(env->isolate(), perf.usPktSndPeriod))
+        .Check();
+
+    // local measurements
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "usSndDuration"),
+              Integer::New(env->isolate(), perf.usSndDuration))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "mbpsRecvRate"),
+              Number::New(env->isolate(), perf.mbpsRecvRate))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "mbpsSendRate"),
+              Number::New(env->isolate(), perf.mbpsSendRate))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvNAK"),
+              Integer::New(env->isolate(), perf.pktRecvNAK))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSentNAK"),
+              Integer::New(env->isolate(), perf.pktSentNAK))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvACK"),
+              Integer::New(env->isolate(), perf.pktRecvACK))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSentACK"),
+              Integer::New(env->isolate(), perf.pktSentACK))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRetrans"),
+              Integer::New(env->isolate(), perf.pktRetrans))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRcvLoss"),
+              Integer::New(env->isolate(), perf.pktRcvLoss))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSndLoss"),
+              Integer::New(env->isolate(), perf.pktSndLoss))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecv"),
+              Integer::New(env->isolate(), perf.pktRecv))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSent"),
+              Integer::New(env->isolate(), perf.pktSent))
+        .Check();
+
+    // global measurements
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "usSndDurationTotal"),
+              Integer::New(env->isolate(), perf.usSndDurationTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSentNAKTotal"),
+              Integer::New(env->isolate(), perf.pktSentNAKTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvNAKTotal"),
+              Integer::New(env->isolate(), perf.pktRecvNAKTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSentACKTotal"),
+              Integer::New(env->isolate(), perf.pktSentACKTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvACKTotal"),
+              Integer::New(env->isolate(), perf.pktRecvACKTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRetransTotal"),
+              Integer::New(env->isolate(), perf.pktRetransTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRcvLossTotal"),
+              Integer::New(env->isolate(), perf.pktRcvLossTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvTotal"),
+              Integer::New(env->isolate(), perf.pktRecvTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktRecvTotal"),
+              Integer::New(env->isolate(), perf.pktRecvTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "pktSentTotal"),
+              Integer::New(env->isolate(), perf.pktSentTotal))
+        .Check();
+    info->Set(env->context(),
+              FIXED_ONE_BYTE_STRING(env->isolate(), "msTimeStamp"),
+              Integer::New(env->isolate(), perf.msTimeStamp))
+        .Check();
+  }
+  
+  args.GetReturnValue().Set(err);
+}
 
 }  // namespace node
 
