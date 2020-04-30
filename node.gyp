@@ -63,6 +63,7 @@
       'lib/udt.js',
       'lib/udts.js',
       'lib/_udts_wrap.js',
+      'lib/_udts_common.js',
       'lib/httpp.js',
       'lib/httpps.js',
       'lib/_httpp_agent.js',
