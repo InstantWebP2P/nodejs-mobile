@@ -90,6 +90,8 @@ private:
 
  // UDT specific
  static void GetNetPerf(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Punchhole(const v8::FunctionCallbackInfo<v8::Value>& args);
+ static void Punchhole6(const v8::FunctionCallbackInfo<v8::Value>& args);
  ///////////////
  
 };

@@ -105,6 +105,8 @@ void UDTWrap::Initialize(Local<Object> target,
 
   // UDT specific //
   env->SetProtoMethod(t, "getnetperf", GetNetPerf);
+  env->SetProtoMethod(t, "punchhole", Punchhole);
+  env->SetProtoMethod(t, "punchhole6", Punchhole6);
   /////////////////
 
 
@@ -337,36 +339,7 @@ void UDTWrap::GetNetPerf(const FunctionCallbackInfo<Value>& args) {
 
   uvudt_netperf_t perf;
   int err = uvudt_getperf(reinterpret_cast<uvudt_t*>(&wrap->handle_), &perf, 1);
-#if 0
-typedef struct uvudt_netperf_s
-{
-    // global measurements
-    int64_t msTimeStamp;        // time since the UDT entity is started, in milliseconds
-    int64_t pktSentTotal;       // total number of sent data packets, including retransmissions
-    int64_t pktRecvTotal;       // total number of received packets
-    int pktSndLossTotal;        // total number of lost packets (sender side)
-    int pktRcvLossTotal;        // total number of lost packets (receiver side)
-    int pktRetransTotal;        // total number of retransmitted packets
-    int pktSentACKTotal;        // total number of sent ACK packets
-    int pktRecvACKTotal;        // total number of received ACK packets
-    int pktSentNAKTotal;        // total number of sent NAK packets
-    int pktRecvNAKTotal;        // total number of received NAK packets
-    int64_t usSndDurationTotal; // total time duration when UDT is sending data (idle time exclusive)
 
-    // local measurements
-    int64_t pktSent;            // number of sent data packets, including retransmissions
-    int64_t pktRecv;            // number of received packets
-    int pktSndLoss;             // number of lost packets (sender side)
-    int pktRcvLoss;             // number of lost packets (receiver side)
-    int pktRetrans;             // number of retransmitted packets
-    int pktSentACK;             // number of sent ACK packets
-    int pktRecvACK;             // number of received ACK packets
-    int pktSentNAK;             // number of sent NAK packets
-    int pktRecvNAK;             // number of received NAK packets
-    double mbpsSendRate;        // sending rate in Mb/s
-    double mbpsRecvRate;        // receiving rate in Mb/s
-    int64_t usSndDuration;      // busy sending time (i.e., idle time exclusive)
-#endif
   if (err == 0) {
     // instant measurements
     info->Set(env->context(),
@@ -497,6 +470,74 @@ typedef struct uvudt_netperf_s
               FIXED_ONE_BYTE_STRING(env->isolate(), "msTimeStamp"),
               Integer::New(env->isolate(), perf.msTimeStamp))
         .Check();
+  }
+  
+  args.GetReturnValue().Set(err);
+}
+
+void UDTWrap::Punchhole(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(
+      &wrap, args.Holder(), args.GetReturnValue().Set(UV_EBADF));
+
+  CHECK(args[0]->IsString());
+  CHECK(args[1]->IsUint32());
+  CHECK(args[2]->IsUint32());
+  CHECK(args[3]->IsUint32());
+
+  node::Utf8Value ip_address(env->isolate(), args[0]);
+
+  int port;
+  args[1]->Int32Value(env->context()).To(&port);
+  int from;
+  args[2]->Int32Value(env->context()).To(&from);
+  int toto;
+  args[3]->Int32Value(env->context()).To(&toto);
+
+  sockaddr_in addr;
+  int err = uv_ip4_addr(*ip_address, port, &addr);
+
+  if (err == 0) {
+    err = uvudt_punchhole(reinterpret_cast<uvudt_t*>(&wrap->handle_),
+                          reinterpret_cast<const sockaddr*>(&addr),
+                          from,
+                          toto);
+  }
+  
+  args.GetReturnValue().Set(err);
+}
+
+void UDTWrap::Punchhole6(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(
+      &wrap, args.Holder(), args.GetReturnValue().Set(UV_EBADF));
+
+  CHECK(args[0]->IsString());
+  CHECK(args[1]->IsUint32());
+  CHECK(args[2]->IsUint32());
+  CHECK(args[3]->IsUint32());
+
+  node::Utf8Value ip_address(env->isolate(), args[0]);
+
+  int port;
+  args[1]->Int32Value(env->context()).To(&port);
+  int from;
+  args[2]->Int32Value(env->context()).To(&from);
+  int toto;
+  args[3]->Int32Value(env->context()).To(&toto);
+
+  sockaddr_in6 addr;
+  int err = uv_ip6_addr(*ip_address, port, &addr);
+
+  if (err == 0) {
+    err = uvudt_punchhole(reinterpret_cast<uvudt_t*>(&wrap->handle_),
+                          reinterpret_cast<const sockaddr*>(&addr),
+                          from,
+                          toto);
   }
   
   args.GetReturnValue().Set(err);
