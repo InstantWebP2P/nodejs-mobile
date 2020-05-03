@@ -225,10 +225,9 @@ void UDTWrap::Bind(
   int port;
   unsigned int flags = 0;
   if (!args[1]->Int32Value(env->context()).To(&port)) return;
-  if (family == AF_INET6 &&
-      !args[2]->Uint32Value(env->context()).To(&flags)) {
-    return;
-  }
+  ///if (!args[2]->Uint32Value(env->context()).To(&flags)) {
+    flags = UVUDT_FLAG_REUSEADDR | UVUDT_FLAG_REUSEABLE;
+  ///}
 
   T addr;
   int err = uv_ip_addr(*ip_address, port, &addr);
