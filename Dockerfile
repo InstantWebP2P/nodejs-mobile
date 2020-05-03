@@ -10,7 +10,7 @@ FROM ubuntu:18.04
 # Install.
 RUN \
  apt-get -y update && \
- apt-get install -y python g++ gcc make
+ apt-get install -y python g++ gcc make openssl
 
 # Add files.
 COPY . /appins/
