@@ -1,1 +1,2 @@
-httpp related js files cloned from net/tls/http/https
+httpp related js files modified from net/tls/http/https
+=====================================================
