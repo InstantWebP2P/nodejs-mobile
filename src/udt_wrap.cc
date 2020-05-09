@@ -488,11 +488,11 @@ void UDTWrap::Punchhole(const FunctionCallbackInfo<Value>& args) {
 
   node::Utf8Value ip_address(env->isolate(), args[0]);
 
-  int port;
+  int port = 0;
   args[1]->Int32Value(env->context()).To(&port);
-  int from;
+  int from = 0;
   args[2]->Int32Value(env->context()).To(&from);
-  int toto;
+  int toto = 0;
   args[3]->Int32Value(env->context()).To(&toto);
 
   sockaddr_in addr;
