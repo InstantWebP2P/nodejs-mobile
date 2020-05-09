@@ -32,7 +32,6 @@
 #include "req_wrap-inl.h"
 #include "stream_base-inl.h"
 #include "string_bytes.h"
-#include "string_search.h"
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -370,7 +369,12 @@ int FileHandle::ReadStart() {
     if (freelist.size() > 0) {
       read_wrap = std::move(freelist.back());
       freelist.pop_back();
-      read_wrap->AsyncReset();
+      // Use a fresh async resource.
+      // Lifetime is ensured via AsyncWrap::resource_.
+      Local<Object> resource = Object::New(env()->isolate());
+      USE(resource->Set(
+          env()->context(), env()->handle_string(), read_wrap->object()));
+      read_wrap->AsyncReset(resource);
       read_wrap->file_handle_ = this;
     } else {
       Local<Object> wrap_obj;
@@ -821,10 +825,8 @@ static void InternalModuleReadJSON(const FunctionCallbackInfo<Value>& args) {
 
   while (p < pe) {
     char c = *p++;
-    if (c == '"') goto quote;  // Keeps code flat and inner loop small.
     if (c == '\\' && p < pe && *p == '"') p++;
-    continue;
-quote:
+    if (c != '"') continue;
     *ppos++ = p;
     if (ppos < &pos[2]) continue;
     ppos = &pos[0];

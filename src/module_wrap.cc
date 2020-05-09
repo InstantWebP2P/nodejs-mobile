@@ -1047,7 +1047,6 @@ Maybe<URL> ResolveExportsTarget(Environment* env,
             return Nothing<URL>();
           }
           CHECK(!try_catch.HasCaught());
-          ProcessEmitExperimentalWarning(env, "Conditional exports");
           return resolved;
         }
       } else if (key_str == "default") {
@@ -1068,7 +1067,6 @@ Maybe<URL> ResolveExportsTarget(Environment* env,
             return Nothing<URL>();
           }
           CHECK(!try_catch.HasCaught());
-          ProcessEmitExperimentalWarning(env, "Conditional exports");
           return resolved;
         }
       }
@@ -1284,7 +1282,6 @@ Maybe<URL> PackageResolve(Environment* env,
       }
     }
     if (found_pjson && pcfg->name == pkg_name && !pcfg->exports.IsEmpty()) {
-      ProcessEmitExperimentalWarning(env, "Package name self resolution");
       if (pkg_subpath == "./") {
         return Just(URL("./", pjson_url));
       } else if (!pkg_subpath.length()) {
@@ -1426,8 +1423,8 @@ static MaybeLocal<Promise> ImportModuleDynamically(
 
   Local<PrimitiveArray> options = referrer->GetHostDefinedOptions();
   if (options->Length() != HostDefinedOptions::kLength) {
-    Local<Promise::Resolver> resolver =
-        Promise::Resolver::New(context).ToLocalChecked();
+    Local<Promise::Resolver> resolver;
+    if (!Promise::Resolver::New(context).ToLocal(&resolver)) return {};
     resolver
         ->Reject(context,
                  v8::Exception::TypeError(FIXED_ONE_BYTE_STRING(
@@ -1495,7 +1492,8 @@ void ModuleWrap::SetImportModuleDynamicallyCallback(
 void ModuleWrap::HostInitializeImportMetaObjectCallback(
     Local<Context> context, Local<Module> module, Local<Object> meta) {
   Environment* env = Environment::GetCurrent(context);
-  CHECK_NOT_NULL(env);  // TODO(addaleax): Handle nullptr here.
+  if (env == nullptr)
+    return;
   ModuleWrap* module_wrap = GetFromModule(env, module);
 
   if (module_wrap == nullptr) {

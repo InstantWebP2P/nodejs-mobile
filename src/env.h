@@ -64,7 +64,7 @@ class FileHandleReadWrap;
 }
 
 namespace performance {
-class performance_state;
+class PerformanceState;
 }
 
 namespace tracing {
@@ -409,11 +409,11 @@ constexpr size_t kFsStatsBufferLength =
   V(filehandlereadwrap_template, v8::ObjectTemplate)                           \
   V(fsreqpromise_constructor_template, v8::ObjectTemplate)                     \
   V(handle_wrap_ctor_template, v8::FunctionTemplate)                           \
+  V(histogram_instance_template, v8::ObjectTemplate)                           \
   V(http2settings_constructor_template, v8::ObjectTemplate)                    \
   V(http2stream_constructor_template, v8::ObjectTemplate)                      \
   V(http2ping_constructor_template, v8::ObjectTemplate)                        \
   V(libuv_stream_wrap_ctor_template, v8::FunctionTemplate)                     \
-  V(message_event_object_template, v8::ObjectTemplate)                         \
   V(message_port_constructor_template, v8::FunctionTemplate)                   \
   V(pipe_constructor_template, v8::FunctionTemplate)                           \
   V(promise_wrap_template, v8::ObjectTemplate)                                 \
@@ -503,7 +503,7 @@ class IsolateData : public MemoryRetainer {
 #define VY(PropertyName, StringValue) V(v8::Symbol, PropertyName)
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
-  inline v8::Local<TypeName> PropertyName(v8::Isolate* isolate) const;
+  inline v8::Local<TypeName> PropertyName() const;
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)
@@ -597,11 +597,13 @@ class KVStore {
 
   virtual v8::MaybeLocal<v8::String> Get(v8::Isolate* isolate,
                                          v8::Local<v8::String> key) const = 0;
+  virtual v8::Maybe<std::string> Get(const char* key) const = 0;
   virtual void Set(v8::Isolate* isolate,
                    v8::Local<v8::String> key,
                    v8::Local<v8::String> value) = 0;
   virtual int32_t Query(v8::Isolate* isolate,
                         v8::Local<v8::String> key) const = 0;
+  virtual int32_t Query(const char* key) const = 0;
   virtual void Delete(v8::Isolate* isolate, v8::Local<v8::String> key) = 0;
   virtual v8::Local<v8::Array> Enumerate(v8::Isolate* isolate) const = 0;
 
@@ -1015,7 +1017,7 @@ class Environment : public MemoryRetainer {
   inline std::vector<std::unique_ptr<fs::FileHandleReadWrap>>&
       file_handle_read_wrap_freelist();
 
-  inline performance::performance_state* performance_state();
+  inline performance::PerformanceState* performance_state();
   inline std::unordered_map<std::string, uint64_t>* performance_marks();
 
   void CollectUVExceptionInfo(v8::Local<v8::Value> context,
@@ -1171,7 +1173,8 @@ class Environment : public MemoryRetainer {
   }
 
   // cb will be called as cb(env) on the next event loop iteration.
-  // keep_alive will be kept alive between now and after the callback has run.
+  // Unlike the JS setImmediate() function, nested SetImmediate() calls will
+  // be run without returning control to the event loop, similar to nextTick().
   template <typename Fn>
   inline void SetImmediate(Fn&& cb);
   template <typename Fn>
@@ -1325,7 +1328,7 @@ class Environment : public MemoryRetainer {
 
   AliasedInt32Array stream_base_state_;
 
-  std::unique_ptr<performance::performance_state> performance_state_;
+  std::unique_ptr<performance::PerformanceState> performance_state_;
   std::unordered_map<std::string, uint64_t> performance_marks_;
 
   bool has_run_bootstrapping_code_ = false;
