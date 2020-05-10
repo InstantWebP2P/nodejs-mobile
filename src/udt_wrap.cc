@@ -107,6 +107,7 @@ void UDTWrap::Initialize(Local<Object> target,
   env->SetProtoMethod(t, "getnetperf", GetNetPerf);
   env->SetProtoMethod(t, "punchhole", Punchhole);
   env->SetProtoMethod(t, "punchhole6", Punchhole6);
+  env->SetProtoMethod(t, "setSocketSec", SetSocketSec);
   /////////////////
 
 
@@ -522,11 +523,11 @@ void UDTWrap::Punchhole6(const FunctionCallbackInfo<Value>& args) {
 
   node::Utf8Value ip_address(env->isolate(), args[0]);
 
-  int port;
+  int port = 0;
   args[1]->Int32Value(env->context()).To(&port);
-  int from;
+  int from = 0;
   args[2]->Int32Value(env->context()).To(&from);
-  int toto;
+  int toto = 0;
   args[3]->Int32Value(env->context()).To(&toto);
 
   sockaddr_in6 addr;
@@ -539,6 +540,42 @@ void UDTWrap::Punchhole6(const FunctionCallbackInfo<Value>& args) {
                           toto);
   }
   
+  args.GetReturnValue().Set(err);
+}
+
+void UDTWrap::SetSocketSec(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  UDTWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(
+      &wrap, args.Holder(), args.GetReturnValue().Set(UV_EBADF));
+
+  CHECK(args[0]->IsUint32());
+  CHECK(args[1]->IsUint32());
+  CHECK(args[2]->IsUint32());
+  CHECK(args[3]->IsUint32());
+  CHECK(args[4]->IsUint32());
+
+  int mode = 0;
+  args[0]->Int32Value(env->context()).To(&mode);
+
+  unsigned char key[16];
+  int val = 0;
+  // network byte order
+  for (int i = 0; i < 4; i++) {
+    args[i + 1]->Int32Value(env->context()).To(&val);
+
+    key[i * 4 + 3] = val;
+    key[i * 4 + 2] = val >> 8;
+    key[i * 4 + 1] = val >> 16;
+    key[i * 4 + 0] = val >> 24;
+
+    printf("val%d:0x%x ", i, val);
+  }
+
+  int err = uvudt_setsec(reinterpret_cast<uvudt_t*>(&wrap->handle_),
+                         mode, key, sizeof(key));
+
   args.GetReturnValue().Set(err);
 }
 

@@ -1,3 +1,8 @@
+// Copyright tom zhou<appnet.link@gmail.com>, 2020
+//
+// _httpp_client.js, ported from _http_client.js with udt transport binding
+//
+
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a

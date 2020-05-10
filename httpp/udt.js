@@ -1,3 +1,8 @@
+// Copyright tom zhou<appnet.link@gmail.com>, 2020
+//
+// udt.js, ported from net.js with udt transport binding
+//
+
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -920,6 +925,18 @@ Socket.prototype.punchhole = function(...args) {
     }
 
     return self;
+};
+
+// set security mode with 128-bit session key
+Socket.prototype.setSocketSec = function (security) {
+    var k0, k1, k2, k3;
+    k0 = parseInt('0x' + security.keyhex.slice(0, 8), 16);
+    k1 = parseInt('0x' + security.keyhex.slice(8, 16), 16);
+    k2 = parseInt('0x' + security.keyhex.slice(16, 24), 16);
+    k3 = parseInt('0x' + security.keyhex.slice(24, 32), 16);
+    debug('sesskey-128bit:' + k0 + '-' + k1 + '-' + k2 + '-' + k3);
+    
+    return this._handle.setSocketSec(security.mode, k0, k1, k2, k3);
 };
 //////////////////////////////////////////////////////////////////////////
 

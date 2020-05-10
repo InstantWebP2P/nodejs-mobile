@@ -1,3 +1,8 @@
+// Copyright tom zhou<appnet.link@gmail.com>, 2020
+//
+// _udts_wrap.js, ported from _tls_wrap.js with udt transport binding
+//
+
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
