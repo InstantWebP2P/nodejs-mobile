@@ -760,16 +760,45 @@ function createHole(...args) {
     const normalized = normalizeArgs(args);
     const options = normalized[0];
     debug('createHole', normalized);
-    const localHole = options.localHole;
+    const { hole } = options;
     const socket = new Socket(options);
 
     if (options.timeout) {
         socket.setTimeout(options.timeout);
     }
 
+    // check localAddress
+    if (options.localAddress && typeof options.localAddress === 'object') {
+        const lobj = options.localAddress;
+
+        // check on addr
+        if (lobj.addr) {
+            options.localAddress = lobj.addr;
+        } else {
+            options.localAddress = '0.0.0.0';
+        }
+
+        // check on port
+        if (lobj.port > 0 && !options.localPort) {
+            options.localPort = lobj.port;
+        }
+    } else if (hole && typeof hole === 'object') {
+        const lobj = hole;
+
+        // check on addr
+        if (lobj.addr && !options.localAddress) {
+            options.localAddress = lobj.addr;
+        }
+
+        // check on port
+        if (lobj.port > 0 && !options.localPort) {
+            options.localPort = lobj.port;
+        }
+    }
+
     // check local hole addr/port
-    const localAddress = options.localAddress || (localHole && localHole.addr);
-    const localPort    = options.localPort    || (localHole && localHole.port);
+    const localAddress = options.localAddress;
+    const localPort    = options.localPort;
 
     if (!isIP(localAddress)) {
         throw new ERR_INVALID_IP_ADDRESS(localAddress);
@@ -810,15 +839,15 @@ function createHole(...args) {
 }
 
 function internalPunchhole(
-    self, address, port, addressType, localAddress, localPort, flags) {
+    self, address, port, addressType, localAddress, localPort, holeRange) {
     assert(self.connecting);
 
     let err;
     
     if (addressType === 4)
-        err = self._handle.punchhole(address, port, 0, 0);
+        err = self._handle.punchhole(address, port, holeRange.from, holeRange.to);
     else
-        err = self._handle.punchhole6(address, port, 0, 0);
+        err = self._handle.punchhole6(address, port, holeRange.from, holeRange.to);
 
     if (err) {
         const sockname = self._getsockname();
@@ -848,6 +877,7 @@ Socket.prototype.punchhole = function(...args) {
     debug('punchhole', normalized);
     const host = options.host;
     const port = options.port;
+    const holeRange = options.holeRange || {from: 0, to: 0};
     const addressType = isIP(host);
 
     const self = this;
@@ -859,9 +889,9 @@ Socket.prototype.punchhole = function(...args) {
     }
 
     if (addressType == 4) {
-        err = self._handle.punchhole(host, port, 0, 0);
+        err = self._handle.punchhole(host, port, holeRange.from, holeRange.to);
     } else if (addressType == 6) {
-        err = self._handle.punchhole6(host, port, 0, 0);
+        err = self._handle.punchhole6(host, port, holeRange.from, holeRange.to);
     } else {
         if (dns === undefined) dns = require('dns');
         const dnsopts = {
@@ -904,7 +934,7 @@ Socket.prototype.punchhole = function(...args) {
                     defaultTriggerAsyncIdScope(
                         self[async_id_symbol],
                         internalPunchhole,
-                        self, ip, port, addressType, localAddress, localPort
+                        self, ip, port, addressType, localAddress, localPort, holeRange
                     );
                 }
             });
@@ -1196,9 +1226,41 @@ Socket.prototype.connect = function(...args) {
 
 
 function lookupAndConnect(self, options) {
-  const { localAddress, localPort } = options;
+  let { localAddress, localPort } = options;
+  const { hole } = options;
   const host = options.host || 'localhost';
   let { port } = options;
+
+
+    // check localAddress
+    if (localAddress && typeof localAddress === 'object') {
+        const lobj = localAddress;
+
+        // check on addr
+        if (lobj.addr) {
+            localAddress = lobj.addr;
+        } else {
+            localAddress = null;
+        }
+
+        // check on port
+        if (lobj.port > 0 && !localPort) {
+            localPort = lobj.port;
+        }
+    } else if (hole && typeof hole === 'object') {
+        const lobj = hole;
+
+        // check on addr
+        if (lobj.addr && !localAddress) {
+            localAddress = lobj.addr;
+        }
+
+        // check on port
+        if (lobj.port > 0 && !localPort) {
+            localPort = lobj.port;
+        }
+    }
+
 
   if (localAddress && !isIP(localAddress)) {
     throw new ERR_INVALID_IP_ADDRESS(localAddress);
