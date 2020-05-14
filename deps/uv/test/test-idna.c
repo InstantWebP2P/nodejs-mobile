@@ -161,7 +161,7 @@ TEST_IMPL(idna_toascii) {
   T("Pročprostěnemluvíčesky", "xn--Proprostnemluvesky-uyb24dma41a");
   T("למההםפשוטלאמדבריםעברית", "xn--4dbcagdahymbxekheh6e0a7fei0b");
   //T("यहलोगहिन्दीक्योंनहींबोलसकतेहैं",
-    "xn--i1baa7eci9glrd9b2ae1bj0hfcgg6iyaf8o0a1dig0cd");
+  //  "xn--i1baa7eci9glrd9b2ae1bj0hfcgg6iyaf8o0a1dig0cd");
   T("なぜみんな日本語を話してくれないのか",
     "xn--n8jok5ay5dzabd5bym9f0cm5685rrjetr6pdxa");
   T("세계의모든사람들이한국어를이해한다면얼마나좋을까",

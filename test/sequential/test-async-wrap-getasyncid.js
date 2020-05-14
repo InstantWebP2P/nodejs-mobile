@@ -52,6 +52,11 @@ const { getSystemErrorName } = require('util');
     delete providers.HTTPINCOMINGMESSAGE;
     delete providers.ELDHISTOGRAM;
 
+    // TODO(tom zhou): Test for these
+    delete providers.UDTCONNECTWRAP;
+    delete providers.UDTSERVERWRAP;
+    delete providers.UDTWRAP;
+
     const objKeys = Object.keys(providers);
     if (objKeys.length > 0)
       process._rawDebug(objKeys);
