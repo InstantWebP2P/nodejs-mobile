@@ -160,10 +160,10 @@ UDTStreamWrap* UDTStreamWrap::From(Environment* env, Local<Object> object) {
 
 
 int UDTStreamWrap::GetFD() {
-  int fd = -1;
+  uv_os_sock_t fd = -1;
   if (stream() != nullptr)
     uvudt_udpfd(stream(), &fd);
-  return fd;
+  return (int)fd;
 }
 
 
