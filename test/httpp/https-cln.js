@@ -1,3 +1,5 @@
+'use strict';
+
 var https = require('https');
 
 for (var i = 0; i < 200; i ++)

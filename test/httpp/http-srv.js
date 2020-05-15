@@ -1,3 +1,5 @@
+'use strict';
+
 var http = require('http');
 var srv = http.createServer(function(req, res){
   res.end('Hi, just say hi to you over TCP ...\n');

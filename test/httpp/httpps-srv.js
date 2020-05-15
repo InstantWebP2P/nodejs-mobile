@@ -1,3 +1,5 @@
+'use strict';
+
 var httpps = require('httpps');
 var fs = require('fs');
 

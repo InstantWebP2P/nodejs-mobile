@@ -1,3 +1,5 @@
+'use strict';
+
 var udt = require('udt');
 var fs = require('fs');
 

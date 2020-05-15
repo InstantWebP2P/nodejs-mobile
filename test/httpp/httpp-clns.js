@@ -1,3 +1,5 @@
+'use strict';
+
 var httpp = require('httpp');
 var http = require('http');
 var maxSrvs = 10;

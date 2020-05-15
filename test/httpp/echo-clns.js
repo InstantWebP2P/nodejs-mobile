@@ -1,3 +1,4 @@
+'use strict';
 
 var udt = require('udt');
 var cln = udt.connect({port:51686, host: 'localhost'} , function(){

@@ -1,3 +1,5 @@
+'use strict';
+
 require('httpp').createServer((req, res) => {
     res.end('Hi, just say hi to you over UDP ...\n');
 }).listen(

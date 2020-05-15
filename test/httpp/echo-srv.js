@@ -1,3 +1,5 @@
+'use strict';
+
 const udt = require('udt');
 const srv = udt.createServer(function(socket){
     socket.pipe(socket);     

@@ -1,3 +1,5 @@
+'use strict';
+
 const udts = require('udts');
 let   fs   = require('fs');
 

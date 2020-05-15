@@ -1,3 +1,5 @@
+'use strict';
+
 var httpp = require('httpp');
 var srv = httpp.createServer(function(req, res){
   res.end('Hi, just say hi to you over UDP ...\n');

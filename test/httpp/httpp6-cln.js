@@ -1,3 +1,5 @@
+'use strict';
+
 var httpp = require('httpp');
 
 for (var i = 0; i < 2; i ++)

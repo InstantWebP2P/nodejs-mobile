@@ -1,3 +1,5 @@
+'use strict';
+
 var cluster = require('cluster');
 var http = require('httpp');
 var numCPUs = require('os').cpus().length;

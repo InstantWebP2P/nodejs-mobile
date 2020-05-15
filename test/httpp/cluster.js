@@ -1,10 +1,13 @@
+'use strict';
+
 var cluster = require('cluster');
 var http = require('http');
 var numCPUs = require('os').cpus().length;
 
+var i;
 if (cluster.isMaster) {
   // Fork workers.
-  for (var i = 0; i < numCPUs; i++) {
+  for (i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
 
