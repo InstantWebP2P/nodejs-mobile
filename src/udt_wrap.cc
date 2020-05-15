@@ -490,11 +490,13 @@ void UDTWrap::Punchhole(const FunctionCallbackInfo<Value>& args) {
   node::Utf8Value ip_address(env->isolate(), args[0]);
 
   int port = 0;
-  args[1]->Int32Value(env->context()).To(&port);
+  if (!args[1]->Int32Value(env->context()).To(&port)) return;
+
   int from = 0;
-  args[2]->Int32Value(env->context()).To(&from);
+  if (!args[2]->Int32Value(env->context()).To(&from)) return;
+
   int toto = 0;
-  args[3]->Int32Value(env->context()).To(&toto);
+  if (!args[3]->Int32Value(env->context()).To(&toto)) return;
 
   sockaddr_in addr;
   int err = uv_ip4_addr(*ip_address, port, &addr);
@@ -524,11 +526,13 @@ void UDTWrap::Punchhole6(const FunctionCallbackInfo<Value>& args) {
   node::Utf8Value ip_address(env->isolate(), args[0]);
 
   int port = 0;
-  args[1]->Int32Value(env->context()).To(&port);
+  if (!args[1]->Int32Value(env->context()).To(&port)) return;
+
   int from = 0;
-  args[2]->Int32Value(env->context()).To(&from);
+  if (!args[2]->Int32Value(env->context()).To(&from)) return;
+
   int toto = 0;
-  args[3]->Int32Value(env->context()).To(&toto);
+  if (!args[3]->Int32Value(env->context()).To(&toto)) return;
 
   sockaddr_in6 addr;
   int err = uv_ip6_addr(*ip_address, port, &addr);
@@ -557,13 +561,13 @@ void UDTWrap::SetSocketSec(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[4]->IsUint32());
 
   int mode = 0;
-  args[0]->Int32Value(env->context()).To(&mode);
+  if (!args[0]->Int32Value(env->context()).To(&mode)) return;
 
   unsigned char key[16];
   int val = 0;
   // network byte order
   for (int i = 0; i < 4; i++) {
-    args[i + 1]->Int32Value(env->context()).To(&val);
+    if (!args[i + 1]->Int32Value(env->context()).To(&val)) return;
 
     key[i * 4 + 3] = val;
     key[i * 4 + 2] = val >> 8;
