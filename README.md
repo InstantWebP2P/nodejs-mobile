@@ -22,7 +22,6 @@
 
 ### TODO
 
-* Support iOS
 * Add more test cases
 * Improve documents
 * RFC protocol draft
