@@ -1,6 +1,8 @@
 ### Node-HTTPP - Run HTTP over UDP and Bring Web in Peer or P2P styles.
 
-![C/C++ CI](https://github.com/InstantWebP2P/node-httpp/workflows/C/C++%20CI/badge.svg)
+![test-linux](https://github.com/InstantWebP2P/node-httpp/workflows/test-linux/badge.svg?branch=v12.x-httpp)
+![test-macOS](https://github.com/InstantWebP2P/node-httpp/workflows/test-macOS/badge.svg?branch=v12.x-httpp)
+![build-windows](https://github.com/InstantWebP2P/node-httpp/workflows/build-windows/badge.svg?branch=v12.x-httpp)
 
 * Consists of four modules: udt.js, httpp.js, udts.js, httpps.js with the compatible api to net.js,http.js,tls.js and https.js
 
