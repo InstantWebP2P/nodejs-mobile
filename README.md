@@ -1,3 +1,127 @@
+### Node-HTTPP - Run HTTP over UDP and Bring Web in Peer or P2P styles.
+
+![C/C++ CI](https://github.com/InstantWebP2P/node-httpp/workflows/C/C++%20CI/badge.svg)
+
+* Consists of four modules: udt.js, httpp.js, udts.js, httpps.js with the compatible api to net.js,http.js,tls.js and https.js
+
+[Wiki page](https://github.com/InstantWebP2P/node-httpp/wiki/An-introduction-to-node-httpp)
+
+### Features
+
+* Run HTTP and HTTPS over UDP, taking UDP high performance
+* Support multi-process/thread UDT server by utilizing multi-cores' CPU
+* Enhance UDT security by authenticating both control and data packet
+* Configurable Congestion Control
+* Per-socket network performance monitor
+* Per-socket bandwidth limitation
+* Extend client/central server style web service transparently
+* Easy to use API, reuse existing http/web and node.js technology
+* Support windows/linux/OSx, RaspberryPi, Android
+
+### TODO
+
+* Support iOS
+* Add more test cases
+* Improve documents
+* RFC protocol draft
+
+
+### third-party source
+
+* [UDT4](http://udt.sourceforge.net)
+
+
+### Support us
+
+* Welcome contributing on document, codes, tests and issues
+
+
+### To checkout the sourcecode:
+
+    git clone https://github.com/InstantWebP2P/node-httpp.git
+
+
+### Build on Linux with Docker
+
+  building:
+  
+    ./appbld ./configure --prefix=/appins
+    ./appbld make -j 6
+    ./appbld make install
+    
+  packaging and start Node.js REPL:
+    
+    ./apppkg
+    
+### To build on other platforms
+
+Prerequisites (Unix only):
+
+    * Python 2.6 or 2.7
+    * GNU Make 3.81 or newer
+    * libexecinfo (FreeBSD and OpenBSD only)
+
+Unix/Macintosh:
+
+    ./configure
+    make
+    make install
+
+Cross compile for Raspberry Pi:
+
+    setup toolchain env first, then
+    source cross-compile-pi.sh
+
+Cross compile for Android:
+
+    setup Android NDK env first, then
+    source android-configure NDK_PATH
+    make -C out  
+
+If your python binary is in a non-standard location or has a
+non-standard name, run the following instead:
+
+    export PYTHON=/path/to/python
+    $PYTHON ./configure
+    make
+    make install
+
+Windows:
+
+    vcbuild.bat
+    
+
+### Stay on NPM v2.15.9
+
+    * npm i npm@2.15.9 -g
+    
+
+### To run the tests:
+
+Unix/Macintosh:
+
+    make test
+
+Windows:
+
+    vcbuild.bat test
+
+### To build the documentation:
+
+    make doc
+
+### To read the documentation:
+
+    man doc/node.1
+
+Resources for Newcomers
+---
+
+  - [The SO_REUSEPORT socket option](https://lwn.net/Articles/542629/)
+
+
+
+
 <p align="center">
   <a href="https://nodejs.org/">
     <img
