@@ -68,59 +68,14 @@ Unix/Macintosh:
     make
     make install
 
-Cross compile for Raspberry Pi:
-
-    setup toolchain env first, then
-    source cross-compile-pi.sh
-
-Cross compile for Android:
-
-    setup Android NDK env first, then
-    source android-configure NDK_PATH
-    make -C out  
-
-If your python binary is in a non-standard location or has a
-non-standard name, run the following instead:
-
-    export PYTHON=/path/to/python
-    $PYTHON ./configure
-    make
-    make install
-
 Windows:
 
     vcbuild.bat
     
-
-### Stay on NPM v2.15.9
-
-    * npm i npm@2.15.9 -g
-    
-
-### To run the tests:
-
-Unix/Macintosh:
-
-    make test
-
-Windows:
-
-    vcbuild.bat test
-
-### To build the documentation:
-
-    make doc
-
-### To read the documentation:
-
-    man doc/node.1
-
 Resources for Newcomers
 ---
 
   - [The SO_REUSEPORT socket option](https://lwn.net/Articles/542629/)
-
-
 
 
 <p align="center">
