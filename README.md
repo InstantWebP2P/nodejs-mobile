@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Node.js for Mobile Apps
 ====================================
 
@@ -37,6 +38,188 @@ Documentation can be found on the [project website](https://code.janeasystems.co
 #### Basic build tools:
 ```sh
 sudo apt-get install -y build-essential git python
+=======
+### Node-HTTPP - Run HTTP over UDP and Bring Web in Peer or P2P styles.
+
+![test-linux](https://github.com/InstantWebP2P/node-httpp/workflows/test-linux/badge.svg?branch=v12.x-httpp)
+![test-macOS](https://github.com/InstantWebP2P/node-httpp/workflows/test-macOS/badge.svg?branch=v12.x-httpp)
+![build-windows](https://github.com/InstantWebP2P/node-httpp/workflows/build-windows/badge.svg?branch=v12.x-httpp)
+
+* Consists of four modules: udt.js, httpp.js, udts.js, httpps.js with the compatible api to net.js,http.js,tls.js and https.js
+
+[Wiki page](https://github.com/InstantWebP2P/node-httpp/wiki/An-introduction-to-node-httpp)
+
+### Features
+
+* Run HTTP and HTTPS over UDP, taking UDP high performance
+* Support multi-process/thread UDT server by utilizing multi-cores' CPU
+* Enhance UDT security by authenticating both control and data packet
+* Configurable Congestion Control
+* Per-socket network performance monitor
+* Per-socket bandwidth limitation
+* Extend client/central server style web service transparently
+* Easy to use API, reuse existing http/web and node.js technology
+* Support windows/linux/OSx, RaspberryPi, Android
+
+### TODO
+
+* Add more test cases
+* Improve documents
+* RFC protocol draft
+
+
+### third-party source
+
+* [UDT4](http://udt.sourceforge.net)
+
+
+### Support us
+
+* Welcome contributing on document, codes, tests and issues
+
+
+### To checkout the sourcecode:
+
+    git clone https://github.com/InstantWebP2P/node-httpp.git
+
+
+### Build on Linux with Docker
+
+  building:
+  
+    ./appbld ./configure --prefix=/appins
+    ./appbld make -j 6
+    ./appbld make install
+    
+  packaging and start Node.js REPL:
+    
+    ./apppkg
+    
+### To build on other platforms
+
+Prerequisites (Unix only):
+
+    * Python 2.6 or 2.7
+    * GNU Make 3.81 or newer
+    * libexecinfo (FreeBSD and OpenBSD only)
+
+Unix/Macintosh:
+
+    ./configure
+    make
+    make install
+
+Windows:
+
+    vcbuild.bat
+    
+Resources for Newcomers
+---
+
+  - [The SO_REUSEPORT socket option](https://lwn.net/Articles/542629/)
+
+
+<p align="center">
+  <a href="https://nodejs.org/">
+    <img
+      alt="Node.js"
+      src="https://nodejs.org/static/images/logo-light.svg"
+      width="400"
+    />
+  </a>
+</p>
+
+Node.js is an open-source, cross-platform, JavaScript runtime environment. It
+executes JavaScript code outside of a browser. For more information on using
+Node.js, see the [Node.js Website][].
+
+The Node.js project uses an [open governance model](./GOVERNANCE.md). The
+[OpenJS Foundation][] provides support for the project.
+
+**This project is bound by a [Code of Conduct][].**
+
+# Table of Contents
+
+* [Support](#support)
+* [Release Types](#release-types)
+  * [Download](#download)
+    * [Current and LTS Releases](#current-and-lts-releases)
+    * [Nightly Releases](#nightly-releases)
+    * [API Documentation](#api-documentation)
+  * [Verifying Binaries](#verifying-binaries)
+* [Building Node.js](#building-nodejs)
+* [Security](#security)
+* [Contributing to Node.js](#contributing-to-nodejs)
+* [Current Project Team Members](#current-project-team-members)
+  * [TSC (Technical Steering Committee)](#tsc-technical-steering-committee)
+  * [Collaborators](#collaborators)
+  * [Release Keys](#release-keys)
+
+## Support
+
+Looking for help? Check out the
+[instructions for getting support](.github/SUPPORT.md).
+
+## Release Types
+
+* **Current**: Under active development. Code for the Current release is in the
+  branch for its major version number (for example,
+  [v10.x](https://github.com/nodejs/node/tree/v10.x)). Node.js releases a new
+  major version every 6 months, allowing for breaking changes. This happens in
+  April and October every year. Releases appearing each October have a support
+  life of 8 months. Releases appearing each April convert to LTS (see below)
+  each October.
+* **LTS**: Releases that receive Long-term Support, with a focus on stability
+  and security. Every even-numbered major version will become an LTS release.
+  LTS releases receive 12 months of _Active LTS_ support and a further 18 months
+  of _Maintenance_. LTS release lines have alphabetically-ordered codenames,
+  beginning with v4 Argon. There are no breaking changes or feature additions,
+  except in some special circumstances.
+* **Nightly**: Code from the Current branch built every 24-hours when there are
+  changes. Use with caution.
+
+Current and LTS releases follow [Semantic Versioning](https://semver.org). A
+member of the Release Team [signs](#release-keys) each Current and LTS release.
+For more information, see the
+[Release README](https://github.com/nodejs/Release#readme).
+
+### Download
+
+Binaries, installers, and source tarballs are available at
+<https://nodejs.org/en/download/>.
+
+#### Current and LTS Releases
+<https://nodejs.org/download/release/>
+
+The [latest](https://nodejs.org/download/release/latest/) directory is an
+alias for the latest Current release. The latest-_codename_ directory is an
+alias for the latest release from an LTS line. For example, the
+[latest-carbon](https://nodejs.org/download/release/latest-carbon/) directory
+contains the latest Carbon (Node.js 8) release.
+
+#### Nightly Releases
+<https://nodejs.org/download/nightly/>
+
+Each directory name and filename contains a date (in UTC time) and the commit
+SHA at the HEAD of the release.
+
+#### API Documentation
+
+Documentation for the latest Current release is at <https://nodejs.org/api/>.
+Version-specific documentation is available in each release directory in the
+_docs_ subdirectory. Version-specific documentation is also at
+<https://nodejs.org/download/docs/>.
+
+### Verifying Binaries
+
+Download directories contain a `SHASUMS256.txt` file with SHA checksums for the
+files.
+
+To download `SHASUMS256.txt` using `curl`:
+
+```console
+$ curl -O https://nodejs.org/dist/vx.y.z/SHASUMS256.txt
+>>>>>>> bed41836030949b74f5a3e591e582b753cfcbbbc
 ```
 
 #### Install curl and unzip (needed to download the Android NDK):

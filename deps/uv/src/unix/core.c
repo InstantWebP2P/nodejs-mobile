@@ -184,7 +184,8 @@ void uv_close(uv_handle_t* handle, uv_close_cb close_cb) {
     return;
 
   default:
-    assert(0);
+    ///assert(0);
+    return;
   }
 
   uv__make_close_pending(handle);

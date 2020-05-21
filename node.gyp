@@ -61,6 +61,17 @@
       'lib/inspector.js',
       'lib/module.js',
       'lib/net.js',
+      'httpp/udt.js',
+      'httpp/udts.js',
+      'httpp/_udts_wrap.js',
+      'httpp/_udts_common.js',
+      'httpp/httpp.js',
+      'httpp/httpps.js',
+      'httpp/_httpp_agent.js',
+      'httpp/_httpp_client.js',
+      'httpp/_httpp_server.js',
+      'httpp/_udtstream_wrap.js',
+      'httpp/internal/js_udtstream_socket.js',
       'lib/os.js',
       'lib/path.js',
       'lib/perf_hooks.js',
@@ -512,6 +523,7 @@
       ],
 
       'include_dirs': [
+        'deps/uv/uvudt',
         'src',
         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
       ],
@@ -607,6 +619,10 @@
         'src/tracing/traced_value.cc',
         'src/tty_wrap.cc',
         'src/udp_wrap.cc',
+        'src/udt_wrap.cc',
+        'src/udtconnect_wrap.cc',
+        'src/udtstream_wrap.cc',
+        'src/udtconnection_wrap.cc',
         'src/util.cc',
         'src/uv.cc',
         # headers to make for a more pleasant IDE experience
@@ -695,6 +711,10 @@
         'src/tracing/traced_value.h',
         'src/tty_wrap.h',
         'src/udp_wrap.h',
+        'src/udt_wrap.h',
+        'src/udtconnect_wrap.h',
+        'src/udtstream_wrap.h',
+        'src/udtconnection_wrap.h',
         'src/util.h',
         'src/util-inl.h',
         # Dependency headers
@@ -1119,6 +1139,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
         'test/cctest',
       ],
@@ -1231,6 +1252,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
       ],
 
@@ -1290,6 +1312,7 @@
         'deps/v8/include',
         'deps/cares/include',
         'deps/uv/include',
+        'deps/uv/uvudt',
         'deps/uvwasi/include',
       ],
 

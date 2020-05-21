@@ -165,6 +165,17 @@
       '<(V8_ROOT)/include',
     ],
     'conditions': [
+      ### add -fno-exceptions
+      [ 'OS in "linux freebsd openbsd solaris android aix cloudabi"', {
+        'cflags_cc': [ '-fno-exceptions' ],
+      }],
+      [ 'OS=="mac"', {
+        'xcode_settings': {
+          'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',        # -fno-exceptions
+        },
+      }],
+      ###
+
       ['clang', {
         'cflags': [ '-Werror', '-Wno-unknown-pragmas' ],
       },{

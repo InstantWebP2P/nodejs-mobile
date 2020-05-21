@@ -88,7 +88,9 @@
   V(v8)                                                                        \
   V(wasi)                                                                      \
   V(worker)                                                                    \
-  V(zlib)
+  V(zlib)                                                                      \
+  V(udt_wrap)                                                                  \
+  V(udtstream_wrap)
 
 #define NODE_BUILTIN_MODULES(V)                                                \
   NODE_BUILTIN_STANDARD_MODULES(V)                                             \

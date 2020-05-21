@@ -58,6 +58,10 @@ const path = require('path');
       delete providers.PIPECONNECTWRAP;
       delete providers.PIPESERVERWRAP;
     }
+    // TODO(tom zhou): Test for these
+    delete providers.UDTCONNECTWRAP;
+    delete providers.UDTSERVERWRAP;
+    delete providers.UDTWRAP;
 
     const objKeys = Object.keys(providers);
     if (objKeys.length > 0)
